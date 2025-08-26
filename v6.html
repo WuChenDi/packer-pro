@@ -308,10 +308,10 @@
         name: '图组1',
         images: [
           { w: 400.0, h: 84.4 },
-          { w: 32.3, h: 320.0 },
-          { w: 32.3, h: 320.0 },
           { w: 102.4, h: 140.0 },
           { w: 140.0, h: 102.4 },
+          { w: 32.3, h: 320.0 },
+          { w: 32.3, h: 320.0 },
         ],
       },
       {
@@ -384,7 +384,7 @@
 
     const CONTAINER_WIDTH = 600
 
-    // 核心算法：多策略尝试，选择最小高度
+    // 核心算法：真正的空隙感知装箱算法
     function optimizeImageLayout(images, gap) {
       const n = images.length
       if (n === 0) return { totalHeight: 0, layout: [], rotations: [] }
@@ -392,89 +392,26 @@
       let bestResult = null
       let minHeight = Number.POSITIVE_INFINITY
 
-      // 策略1：穷举旋转组合 + Bottom-Left算法
-      const rotationOptions = generateRotationOptions(images, gap)
-      console.log(`生成了 ${rotationOptions.length} 种旋转组合`)
+      // 尝试多种旋转组合
+      const rotationCombinations = generateOptimalRotations(images, gap)
       
-      for (let i = 0; i < rotationOptions.length; i++) {
-        const rotations = rotationOptions[i]
-        const result = packWithBottomLeft(images, rotations, gap)
-        
+      for (const rotations of rotationCombinations) {
+        const result = packWithSpaceAwareness(images, rotations, gap)
         if (result && result.totalHeight < minHeight) {
           minHeight = result.totalHeight
           bestResult = result
-          console.log(`找到更好的布局，高度：${minHeight.toFixed(1)}px，旋转：[${rotations.join(', ')}]`)
         }
       }
 
-      // 策略2：网格排列算法（备选）
-      const gridResult = packWithGrid(images, gap)
-      if (gridResult && gridResult.totalHeight < minHeight) {
-        minHeight = gridResult.totalHeight
-        bestResult = gridResult
-        console.log(`网格算法更优，高度：${minHeight.toFixed(1)}px`)
-      }
-
-      console.log(`最终选择高度：${bestResult?.totalHeight?.toFixed(1)}px`)
       return bestResult || { totalHeight: Number.POSITIVE_INFINITY, layout: [], rotations: [] }
     }
 
-    // 生成旋转选项 - 确保包含所有有效组合
-    function generateRotationOptions(images, gap) {
-      const options = []
-      const n = images.length
-
-      // 为小数量图片生成所有可能的旋转组合
-      if (n <= 6) {
-        const maxCombinations = Math.pow(2, n)
-        
-        for (let i = 0; i < maxCombinations; i++) {
-          const rotation = []
-          let valid = true
-          
-          for (let j = 0; j < n; j++) {
-            const rotate = (i >> j) & 1
-            rotation[j] = rotate === 1
-            
-            const width = rotation[j] ? images[j].h : images[j].w
-            if (width > CONTAINER_WIDTH - gap) {
-              valid = false
-              break
-            }
-          }
-          
-          if (valid) {
-            options.push(rotation)
-            // 调试：输出所有生成的组合
-            if (n === 5) {
-              console.log(`生成旋转组合: [${rotation.join(', ')}]`)
-            }
-          }
-        }
-      } else {
-        // 大量图片时使用启发式方法
-        options.push(new Array(n).fill(false))
-        
-        const forceRotate = images.map(img => 
-          img.w > CONTAINER_WIDTH - gap && img.h <= CONTAINER_WIDTH - gap
-        )
-        options.push(forceRotate)
-        
-        const ratioRotate = images.map(img => {
-          if (img.w > CONTAINER_WIDTH - gap) return false
-          if (img.h > CONTAINER_WIDTH - gap) return false
-          const ratio = Math.max(img.w, img.h) / Math.min(img.w, img.h)
-          return ratio > 3 && img.h > img.w
-        })
-        options.push(ratioRotate)
-      }
-
-      console.log(`总共生成 ${options.length} 种有效旋转组合`)
-      return options
-    }
-
-    // Bottom-Left算法 - 增加详细调试
-    function packWithBottomLeft(images, rotations, gap) {
+    // 空间感知装箱算法
+    function packWithSpaceAwareness(images, rotations, gap) {
+      const placed = []
+      const used = new Array(images.length).fill(false)
+      
+      // 准备图片项目
       const items = images.map((img, idx) => ({
         w: rotations[idx] ? img.h : img.w,
         h: rotations[idx] ? img.w : img.h,
@@ -483,264 +420,260 @@
         area: img.w * img.h
       })).filter(item => item.w <= CONTAINER_WIDTH - gap)
 
-      // 特别添加一个专门的"高度优化"策略
-      const sortingStrategies = [
-        // 0. 高度最小化策略：宽矩形在底部，窄条在上方叠放
-        (a, b) => {
-          const aIsWideBase = a.w > 300 && a.h < 100  // 类似400×84的底座
-          const bIsWideBase = b.w > 300 && b.h < 100
-          const aIsHorizontalStrip = a.w > 200 && a.h < 50  // 类似320×32的横条
-          const bIsHorizontalStrip = b.w > 200 && b.h < 50
-          
-          // 宽底座优先
-          if (aIsWideBase && !bIsWideBase) return -1
-          if (!aIsWideBase && bIsWideBase) return 1
-          
-          // 然后是中等方形
-          if (!aIsWideBase && !bIsWideBase && !aIsHorizontalStrip && !bIsHorizontalStrip) {
-            return b.area - a.area
-          }
-          
-          // 最后是横条
-          if (aIsHorizontalStrip && !bIsHorizontalStrip) return 1
-          if (!aIsHorizontalStrip && bIsHorizontalStrip) return -1
-          
-          return a.h - b.h  // 相同类型按高度升序
-        },
-        
-        // 1. 面积降序（经典策略）
-        (a, b) => b.area - a.area,
-        
-        // 2. 宽矩形优先，然后按面积
-        (a, b) => {
+      // 第一步：放置最大的宽矩形作为基础
+      const baseItem = items
+        .filter(item => !used[item.originalIndex])
+        .sort((a, b) => {
           const aWide = a.w > a.h * 1.5
           const bWide = b.w > b.h * 1.5
           if (aWide && !bWide) return -1
           if (!aWide && bWide) return 1
           return b.area - a.area
-        },
-        
-        // 3. 高度升序，宽度降序（层次化布局）
-        (a, b) => a.h - b.h || b.w - a.w
-      ]
-
-      let bestLayout = null
-      let bestHeight = Number.POSITIVE_INFINITY
-      let bestStrategyIndex = -1
-
-      for (let i = 0; i < sortingStrategies.length; i++) {
-        const sortedItems = [...items].sort(sortingStrategies[i])
-        const result = placeItemsBottomLeft(sortedItems, gap)
-        
-        if (result.totalHeight < bestHeight) {
-          bestHeight = result.totalHeight
-          bestLayout = { ...result, rotations }
-          bestStrategyIndex = i
-        }
+        })[0]
+      
+      if (baseItem) {
+        placed.push({
+          x: gap,
+          y: gap,
+          width: baseItem.w,
+          height: baseItem.h,
+          originalIndex: baseItem.originalIndex,
+          rotated: baseItem.rotated
+        })
+        used[baseItem.originalIndex] = true
       }
 
-      // 调试输出
-      if (images.length === 5 && rotations.some(r => r)) {  // 只对图组1且有旋转的情况输出调试信息
-        console.log(`旋转 [${rotations.join(', ')}]: 高度=${bestHeight.toFixed(1)}px, 策略=${bestStrategyIndex}`)
-      }
+      // 主循环：持续寻找最优空隙填充
+      while (used.some(u => !u)) {
+        const currentSpaces = analyzeAvailableSpaces(placed, gap, CONTAINER_WIDTH)
+        let bestMove = null
+        let bestScore = -1
 
-      return bestLayout
-    }
+        // 为每个未使用的图片评估所有可能的放置位置
+        items.forEach(item => {
+          if (used[item.originalIndex]) return
 
-    // 核心装箱逻辑
-    function placeItemsBottomLeft(items, gap) {
-      const placed = []
-
-      for (const item of items) {
-        const position = findBestPosition(placed, item, gap)
-        if (position) {
-          placed.push({
-            x: position.x,
-            y: position.y,
-            width: item.w,
-            height: item.h,
-            originalIndex: item.originalIndex,
-            rotated: item.rotated
+          currentSpaces.forEach(space => {
+            if (item.w <= space.width && item.h <= space.height) {
+              const score = calculatePlacementScore(item, space, placed, gap)
+              if (score > bestScore) {
+                bestScore = score
+                bestMove = {
+                  item,
+                  space,
+                  x: space.x,
+                  y: space.y
+                }
+              }
+            }
           })
+        })
+
+        if (bestMove) {
+          placed.push({
+            x: bestMove.x,
+            y: bestMove.y,
+            width: bestMove.item.w,
+            height: bestMove.item.h,
+            originalIndex: bestMove.item.originalIndex,
+            rotated: bestMove.item.rotated
+          })
+          used[bestMove.item.originalIndex] = true
+        } else {
+          break
         }
       }
 
       const totalHeight = placed.length > 0 ? 
-        Math.max(...placed.map(p => p.y + p.height)) + gap : gap
-
-      return { totalHeight, layout: placed }
-    }
-
-    // 寻找最佳位置 - 修复间隙计算问题
-    function findBestPosition(placed, item, gap) {
-      const candidates = []
-
-      // 基本位置
-      candidates.push({ x: gap, y: gap })
-
-      // 标准位置：每个已放置矩形的右边和下边，确保正确的间隙
-      for (const rect of placed) {
-        candidates.push(
-          { x: rect.x + rect.width + gap, y: rect.y },     // 右边，水平间隙
-          { x: rect.x, y: rect.y + rect.height + gap }     // 下边，垂直间隙
-        )
-      }
-
-      // 增强空隙检测：检查是否能填入更紧凑的位置
-      if (placed.length > 0) {
-        // 特殊检测：第一层右侧空隙
-        const firstRowItems = placed.filter(p => Math.abs(p.y - gap) < 10)  // 容忍度内认为是同一行
-        if (firstRowItems.length > 0) {
-          const rightmostX = Math.max(...firstRowItems.map(p => p.x + p.width))
-          const firstRowMaxHeight = Math.max(...firstRowItems.map(p => p.height))
-          
-          // 第一层右侧空隙
-          if (rightmostX + gap + item.w <= CONTAINER_WIDTH) {
-            candidates.push({
-              x: rightmostX + gap,
-              y: gap,
-              priority: 'first-row-right'
-            })
-            
-            // 在第一层右侧进行垂直叠放（保证间隙）
-            let stackY = gap
-            while (stackY + item.h <= gap + firstRowMaxHeight) {
-              candidates.push({
-                x: rightmostX + gap,
-                y: stackY,
-                priority: 'first-row-stacked'
-              })
-              stackY += item.h + gap  // 确保垂直间隙
-            }
-          }
-        }
-
-        // 寻找其他可能的叠放位置
-        for (const rect of placed) {
-          // 检查是否可以在某个矩形的右侧进行垂直叠放
-          if (rect.x + rect.width + gap + item.w <= CONTAINER_WIDTH) {
-            // 在这个矩形右侧找合适的Y位置
-            let testY = gap
-            while (testY + item.h <= 500) {  // 避免无限循环
-              const testPos = { x: rect.x + rect.width + gap, y: testY }
-              if (!checkOverlap(testPos, item, placed)) {
-                candidates.push(testPos)
-                break
-              }
-              testY += 10
-            }
-          }
-        }
-      }
-
-      // 过滤有效位置，确保不重叠且在容器内
-      const validPositions = candidates.filter(pos => {
-        return pos.x >= gap &&  // 确保左边界间隙
-              pos.y >= gap &&  // 确保上边界间隙
-              pos.x + item.w <= CONTAINER_WIDTH - gap &&  // 确保右边界间隙
-              !checkOverlap(pos, item, placed)
-      })
-
-      if (validPositions.length === 0) return null
-
-      // 选择最优位置：优先级 > 最小Y > 最小X
-      return validPositions.reduce((best, pos) => {
-        // 有特殊优先级的位置优先
-        if (pos.priority && !best.priority) return pos
-        if (!pos.priority && best.priority) return best
-        
-        // 都有优先级或都没有优先级时，比较位置
-        if (pos.y < best.y) return pos
-        if (pos.y === best.y && pos.x < best.x) return pos
-        return best
-      })
-    }
-
-    // 检查重叠 - 加强边界检查
-    function checkOverlap(pos, item, placed) {
-      const newRect = {
-        x: pos.x,
-        y: pos.y,
-        width: item.w,
-        height: item.h
-      }
-
-      return placed.some(rect => {
-        // 检查是否有重叠，需要严格的间隙
-        return !(newRect.x + newRect.width <= rect.x ||
-                rect.x + rect.width <= newRect.x ||
-                newRect.y + newRect.height <= rect.y ||
-                rect.y + rect.height <= newRect.y)
-      })
-    }
-
-    // 检查重叠
-    function checkOverlap(pos, item, placed) {
-      const newRect = {
-        x: pos.x,
-        y: pos.y,
-        width: item.w,
-        height: item.h
-      }
-
-      return placed.some(rect => {
-        return !(newRect.x + newRect.width <= rect.x ||
-                rect.x + rect.width <= newRect.x ||
-                newRect.y + newRect.height <= rect.y ||
-                rect.y + rect.height <= newRect.y)
-      })
-    }
-
-    // 网格排列算法
-    function packWithGrid(images, gap) {
-      const placed = []
-      const rotations = new Array(images.length).fill(false)
-
-      // 按面积排序
-      const sortedImages = images
-        .map((img, idx) => ({ ...img, originalIndex: idx }))
-        .sort((a, b) => (b.w * b.h) - (a.w * a.h))
-
-      let currentY = gap
-      let currentX = gap
-      let rowHeight = 0
-
-      for (const img of sortedImages) {
-        let width = img.w
-        let height = img.h
-        let rotated = false
-
-        // 检查是否需要旋转
-        if (img.w > CONTAINER_WIDTH - gap && img.h <= CONTAINER_WIDTH - gap) {
-          width = img.h
-          height = img.w
-          rotated = true
-        }
-
-        // 检查是否需要换行
-        if (currentX + width > CONTAINER_WIDTH) {
-          currentY += rowHeight + gap
-          currentX = gap
-          rowHeight = 0
-        }
-
-        placed.push({
-          x: currentX,
-          y: currentY,
-          width: width,
-          height: height,
-          originalIndex: img.originalIndex,
-          rotated: rotated
-        })
-
-        rotations[img.originalIndex] = rotated
-        currentX += width + gap
-        rowHeight = Math.max(rowHeight, height)
-      }
-
-      const totalHeight = currentY + rowHeight + gap
+        Math.max(...placed.map(p => p.y + p.height)) + gap : 0
 
       return { totalHeight, layout: placed, rotations }
+    }
+
+    // 分析可用空间
+    function analyzeAvailableSpaces(placed, gap, containerWidth) {
+      const spaces = []
+      
+      if (placed.length === 0) {
+        spaces.push({
+          x: gap,
+          y: gap,
+          width: containerWidth - gap,
+          height: Number.POSITIVE_INFINITY,
+          type: 'initial'
+        })
+        return spaces
+      }
+
+      // 生成网格点
+      const xPoints = [gap]
+      const yPoints = [gap]
+      
+      placed.forEach(rect => {
+        xPoints.push(rect.x, rect.x + rect.width + gap)
+        yPoints.push(rect.y, rect.y + rect.height + gap)
+      })
+      
+      // 去重并排序
+      const uniqueXs = [...new Set(xPoints)].sort((a, b) => a - b)
+      const uniqueYs = [...new Set(yPoints)].sort((a, b) => a - b)
+
+      // 检查每个可能的矩形区域
+      for (let i = 0; i < uniqueXs.length; i++) {
+        for (let j = i + 1; j < uniqueXs.length; j++) {
+          for (let k = 0; k < uniqueYs.length; k++) {
+            for (let l = k + 1; l < uniqueYs.length; l++) {
+              const candidateSpace = {
+                x: uniqueXs[i],
+                y: uniqueYs[k],
+                width: uniqueXs[j] - uniqueXs[i] - gap,
+                height: uniqueYs[l] - uniqueYs[k] - gap
+              }
+
+              // 检查这个空间是否可用
+              if (candidateSpace.width > 0 && 
+                  candidateSpace.height > 0 &&
+                  candidateSpace.x + candidateSpace.width <= containerWidth &&
+                  !isSpaceOccupied(candidateSpace, placed)) {
+                
+                spaces.push({
+                  ...candidateSpace,
+                  area: candidateSpace.width * candidateSpace.height,
+                  type: 'calculated'
+                })
+              }
+            }
+          }
+        }
+      }
+
+      // 添加右侧和下方的开放空间
+      const maxX = Math.max(...placed.map(p => p.x + p.width))
+      const maxY = Math.max(...placed.map(p => p.y + p.height))
+      
+      // 右侧空间
+      if (maxX + gap < containerWidth) {
+        spaces.push({
+          x: maxX + gap,
+          y: gap,
+          width: containerWidth - maxX - gap,
+          height: maxY,
+          area: (containerWidth - maxX - gap) * maxY,
+          type: 'right'
+        })
+      }
+      
+      // 下方空间（全宽）
+      spaces.push({
+        x: gap,
+        y: maxY + gap,
+        width: containerWidth - gap,
+        height: Number.POSITIVE_INFINITY,
+        area: Number.POSITIVE_INFINITY,
+        type: 'bottom'
+      })
+
+      // 按面积和位置优先级排序
+      return spaces.sort((a, b) => {
+        if (a.y !== b.y) return a.y - b.y // 优先较低的Y
+        if (a.x !== b.x) return a.x - b.x // 其次较左的X
+        return b.area - a.area // 最后较大的面积
+      })
+    }
+
+    // 检查空间是否被占用
+    function isSpaceOccupied(space, placed) {
+      return placed.some(rect => {
+        return !(space.x + space.width <= rect.x ||
+                rect.x + rect.width <= space.x ||
+                space.y + space.height <= rect.y ||
+                rect.y + rect.height <= space.y)
+      })
+    }
+
+    // 计算放置得分
+    function calculatePlacementScore(item, space, placed, gap) {
+      let score = 0
+      
+      // 基础得分：优先使用较低的位置
+      score += (1000 - space.y) * 10
+      
+      // 空间利用率得分
+      const utilization = (item.w * item.h) / (space.width * space.height)
+      score += utilization * 100
+      
+      // 紧密度得分：与现有矩形相邻
+      let adjacencyBonus = 0
+      placed.forEach(rect => {
+        const xAdjacent = (Math.abs(space.x - (rect.x + rect.width)) < gap * 2) ||
+                          (Math.abs(space.x + item.w - rect.x) < gap * 2)
+        const yAdjacent = (Math.abs(space.y - (rect.y + rect.height)) < gap * 2) ||
+                          (Math.abs(space.y + item.h - rect.y) < gap * 2)
+        
+        if (xAdjacent && yAdjacent) {
+          adjacencyBonus += 50
+        } else if (xAdjacent || yAdjacent) {
+          adjacencyBonus += 20
+        }
+      })
+      score += adjacencyBonus
+      
+      // 形状匹配得分
+      if (space.type === 'right' && item.h > item.w) {
+        score += 200 // 细长物体放在右侧空隙
+      }
+      
+      // 减少总高度得分
+      const currentMaxHeight = Math.max(...placed.map(p => p.y + p.height))
+      const newMaxHeight = Math.max(currentMaxHeight, space.y + item.h)
+      if (newMaxHeight <= currentMaxHeight) {
+        score += 300 // 不增加总高度的放置
+      }
+      
+      return score
+    }
+
+    // 生成最优旋转组合
+    function generateOptimalRotations(images, gap) {
+      const combinations = []
+      
+      // 基础组合：不旋转
+      combinations.push(new Array(images.length).fill(false))
+      
+      // 智能组合：根据图片特征决定旋转
+      const smartRotation = images.map((img, idx) => {
+        // 太宽超出容器的必须旋转
+        if (img.w > CONTAINER_WIDTH - gap && img.h <= CONTAINER_WIDTH - gap) {
+          return true
+        }
+        // 太高无法旋转的不旋转
+        if (img.h > CONTAINER_WIDTH - gap) {
+          return false
+        }
+        // 长宽比过大的考虑旋转
+        return img.w > img.h * 2.5
+      })
+      combinations.push(smartRotation)
+      
+      // 细长图片旋转组合
+      const thinItemRotation = images.map((img, idx) => {
+        const ratio = Math.max(img.w, img.h) / Math.min(img.w, img.h)
+        return ratio > 5 && img.h <= CONTAINER_WIDTH - gap // 很细长的图片尝试旋转
+      })
+      combinations.push(thinItemRotation)
+      
+      // 混合策略
+      const mixed = images.map((img, idx) => {
+        return (idx % 2 === 0) ? smartRotation[idx] : !smartRotation[idx]
+      })
+      combinations.push(mixed)
+
+      return combinations.filter(rotation => 
+        rotation.every((rotated, idx) => {
+          const width = rotated ? images[idx].h : images[idx].w
+          return width <= CONTAINER_WIDTH - gap
+        })
+      )
     }
 
     // 渲染函数
@@ -827,7 +760,7 @@
       loading.className = 'loading'
       loading.innerHTML = `
         <div class="spinner"></div>
-        <div>多策略算法优化中...</div>
+        <div>空隙感知算法计算中...</div>
       `
       loading.style.cssText = `
         position: fixed; top: 0; left: 0; width: 100%; height: 100%;
@@ -857,7 +790,7 @@
         renderResults(imageGroups, gap)
         document.body.removeChild(loading)
 
-        console.log('=== 多策略算法结果 ===')
+        console.log('=== 空隙感知算法结果 ===')
         imageGroups.forEach((group) => {
           const result = optimizeImageLayout(group.images, gap)
           console.log(`\n${group.name}:`)

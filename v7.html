@@ -1,0 +1,863 @@
+<!doctype html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Packer Pro</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Arial', sans-serif;
+    }
+
+    body {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: #333;
+      line-height: 1.6;
+      padding: 20px;
+      min-height: 100vh;
+    }
+
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    .header {
+      text-align: center;
+      margin-bottom: 30px;
+      padding: 25px;
+      background: rgba(255, 255, 255, 0.95);
+      border-radius: 15px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+    }
+
+    h1 {
+      color: #667eea;
+      margin-bottom: 10px;
+      font-size: 2.2rem;
+    }
+
+    .subtitle {
+      color: #666;
+      font-size: 1.1rem;
+    }
+
+    .controls {
+      display: flex;
+      justify-content: center;
+      gap: 15px;
+      margin: 20px 0;
+      flex-wrap: wrap;
+    }
+
+    .control-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    label {
+      font-weight: bold;
+      color: #333;
+    }
+
+    input {
+      padding: 8px 12px;
+      border: 2px solid #667eea;
+      border-radius: 6px;
+      width: 80px;
+    }
+
+    button {
+      padding: 10px 20px;
+      background: linear-gradient(45deg, #667eea, #764ba2);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: bold;
+      transition: transform 0.3s ease;
+    }
+
+    button:hover {
+      transform: translateY(-2px);
+    }
+
+    .results {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(650px, 1fr));
+      gap: 25px;
+      margin-top: 20px;
+    }
+
+    .group-result {
+      background: white;
+      border-radius: 15px;
+      overflow: hidden;
+      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+      transition: transform 0.3s ease;
+    }
+
+    .group-result:hover {
+      transform: translateY(-5px);
+    }
+
+    .group-header {
+      background: linear-gradient(45deg, #667eea, #764ba2);
+      color: white;
+      padding: 15px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .group-content {
+      padding: 20px;
+    }
+
+    .visualization {
+      position: relative;
+      height: 400px;
+      border: 2px solid #667eea;
+      border-radius: 8px;
+      margin-bottom: 15px;
+      background: #f8f9ff;
+      overflow: hidden;
+    }
+
+    .container-boundary {
+      position: absolute;
+      width: 600px;
+      height: 100%;
+      border: 2px dashed #e74c3c;
+      background: rgba(102, 126, 234, 0.05);
+    }
+
+    .image-item {
+      position: absolute;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      color: white;
+      font-weight: bold;
+      font-size: 12px;
+      text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.7);
+      transition: all 0.3s ease;
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      cursor: pointer;
+      border-radius: 4px;
+    }
+
+    .image-item:hover {
+      transform: scale(1.05);
+      z-index: 10;
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+    }
+
+    .image-number {
+      background: rgba(0, 0, 0, 0.7);
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-size: 11px;
+    }
+
+    .rotated-indicator {
+      position: absolute;
+      top: 2px;
+      right: 2px;
+      background: #e74c3c;
+      color: white;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+    }
+
+    .stats {
+      background: #f8f9ff;
+      padding: 15px;
+      border-radius: 8px;
+      font-size: 14px;
+    }
+
+    .stat-row {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 8px;
+      padding: 4px 0;
+      border-bottom: 1px dashed #ddd;
+    }
+
+    .stat-row:last-child {
+      border-bottom: none;
+      margin-bottom: 0;
+    }
+
+    .color-0 {
+      background: linear-gradient(135deg, #ff6b6b, #ee5a24);
+    }
+
+    .color-1 {
+      background: linear-gradient(135deg, #4ecdc4, #44a08d);
+    }
+
+    .color-2 {
+      background: linear-gradient(135deg, #45b7d1, #96c93d);
+    }
+
+    .color-3 {
+      background: linear-gradient(135deg, #f093fb, #f5576c);
+    }
+
+    .color-4 {
+      background: linear-gradient(135deg, #4facfe, #00f2fe);
+    }
+
+    .color-5 {
+      background: linear-gradient(135deg, #fad0c4, #ffd1ff);
+    }
+
+    .color-6 {
+      background: linear-gradient(135deg, #a8edea, #fed6e3);
+    }
+
+    .color-7 {
+      background: linear-gradient(135deg, #ff9a9e, #fecfef);
+    }
+
+    .algorithm-info {
+      background: #e8f4fd;
+      padding: 12px;
+      border-radius: 8px;
+      margin-top: 15px;
+      font-size: 13px;
+      border-left: 4px solid #667eea;
+    }
+
+    .loading {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.8);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      color: white;
+      font-size: 20px;
+      z-index: 1000;
+    }
+
+    .spinner {
+      width: 50px;
+      height: 50px;
+      border: 4px solid rgba(255, 255, 255, 0.3);
+      border-radius: 50%;
+      border-top: 4px solid white;
+      animation: spin 1s linear infinite;
+      margin-bottom: 20px;
+    }
+
+    @keyframes spin {
+      0% {
+        transform: rotate(0deg);
+      }
+
+      100% {
+        transform: rotate(360deg);
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>🎨 图片排列算法优化器</h1>
+      <p class="subtitle">智能2D装箱算法，最小化总高度，支持图片旋转</p>
+
+      <div class="controls">
+        <div class="control-group">
+          <label>间距 (px):</label>
+          <input type="number" id="gapInput" min="0" max="20" value="5" />
+        </div>
+        <button id="optimizeBtn">🚀 开始优化</button>
+      </div>
+    </div>
+
+    <div class="results" id="resultsContainer">
+      <!-- 结果将在这里显示 -->
+    </div>
+  </div>
+
+  <script>
+    // 图片数据
+const imageGroups = [
+  {
+    id: 1,
+    name: '图组1',
+    images: [
+      { w: 400.0, h: 84.4 },
+      { w: 32.3, h: 320.0 },
+      { w: 32.3, h: 320.0 },
+      { w: 102.4, h: 140.0 },
+      { w: 140.0, h: 102.4 },
+    ],
+  },
+  {
+    id: 2,
+    name: '图组2',
+    images: [
+      { w: 405.3, h: 200.0 },
+      { w: 400.8, h: 200.0 },
+      { w: 55.7, h: 50.0 },
+      { w: 55.7, h: 50.0 },
+      { w: 55.7, h: 50.0 },
+      { w: 55.7, h: 50.0 },
+      { w: 55.7, h: 50.0 },
+      { w: 55.7, h: 50.0 },
+      { w: 55.7, h: 50.0 },
+      { w: 55.7, h: 50.0 },
+      { w: 55.7, h: 50.0 },
+      { w: 55.7, h: 50.0 },
+      { w: 55.7, h: 50.0 },
+      { w: 55.7, h: 50.0 },
+      { w: 55.7, h: 50.0 },
+      { w: 55.7, h: 50.0 },
+      { w: 55.7, h: 50.0 },
+      { w: 55.7, h: 50.0 },
+    ],
+  },
+  {
+    id: 3,
+    name: '图组3',
+    images: [
+      { w: 80.0, h: 33.8 },
+      { w: 80.0, h: 33.8 },
+      { w: 80.0, h: 33.7 },
+      { w: 80.0, h: 33.7 },
+      { w: 80.0, h: 33.7 },
+      { w: 55.1, h: 55.0 },
+      { w: 55.1, h: 55.0 },
+    ],
+  },
+  {
+    id: 4,
+    name: '图组4',
+    images: [
+      { w: 280.0, h: 149.7 },
+      { w: 51.1, h: 45.0 },
+      { w: 51.1, h: 45.0 },
+      { w: 51.1, h: 45.0 },
+      { w: 51.1, h: 45.0 },
+      { w: 51.1, h: 45.0 },
+      { w: 51.1, h: 45.0 },
+      { w: 51.1, h: 45.0 },
+      { w: 51.1, h: 45.0 },
+    ],
+  },
+  {
+    id: 5,
+    name: '图组5',
+    images: [
+      { w: 280.0, h: 28.7 },
+      { w: 280.0, h: 28.7 },
+      { w: 75.0, h: 50.2 },
+      { w: 75.0, h: 50.2 },
+      { w: 75.0, h: 50.2 },
+      { w: 75.0, h: 50.2 },
+      { w: 75.0, h: 50.2 },
+      { w: 75.0, h: 50.2 },
+    ],
+  },
+]
+
+const CONTAINER_WIDTH = 600
+
+// 核心算法：多策略尝试，选择最小高度
+function optimizeImageLayout(images, gap) {
+  const n = images.length
+  if (n === 0) return { totalHeight: 0, layout: [], rotations: [] }
+
+  let bestResult = null
+  let minHeight = Number.POSITIVE_INFINITY
+
+  // 策略1：穷举旋转组合 + Bottom-Left算法
+  const rotationOptions = generateRotationOptions(images, gap)
+  console.log(`生成了 ${rotationOptions.length} 种旋转组合`)
+  
+  for (let i = 0; i < rotationOptions.length; i++) {
+    const rotations = rotationOptions[i]
+    const result = packWithBottomLeft(images, rotations, gap)
+    
+    if (result && result.totalHeight < minHeight) {
+      minHeight = result.totalHeight
+      bestResult = result
+      console.log(`找到更好的布局，高度：${minHeight.toFixed(1)}px，旋转：[${rotations.join(', ')}]`)
+    }
+  }
+
+  // 策略2：网格排列算法（备选）
+  const gridResult = packWithGrid(images, gap)
+  if (gridResult && gridResult.totalHeight < minHeight) {
+    minHeight = gridResult.totalHeight
+    bestResult = gridResult
+    console.log(`网格算法更优，高度：${minHeight.toFixed(1)}px`)
+  }
+
+  console.log(`最终选择高度：${bestResult?.totalHeight?.toFixed(1)}px`)
+  return bestResult || { totalHeight: Number.POSITIVE_INFINITY, layout: [], rotations: [] }
+}
+
+// 生成旋转选项 - 确保包含所有有效组合
+function generateRotationOptions(images, gap) {
+  const options = []
+  const n = images.length
+
+  // 为小数量图片生成所有可能的旋转组合
+  if (n <= 6) {
+    const maxCombinations = Math.pow(2, n)
+    
+    for (let i = 0; i < maxCombinations; i++) {
+      const rotation = []
+      let valid = true
+      
+      for (let j = 0; j < n; j++) {
+        const rotate = (i >> j) & 1
+        rotation[j] = rotate === 1
+        
+        const width = rotation[j] ? images[j].h : images[j].w
+        if (width > CONTAINER_WIDTH - gap) {
+          valid = false
+          break
+        }
+      }
+      
+      if (valid) {
+        options.push(rotation)
+        // 调试：输出所有生成的组合
+        if (n === 5) {
+          console.log(`生成旋转组合: [${rotation.join(', ')}]`)
+        }
+      }
+    }
+  } else {
+    // 大量图片时使用启发式方法
+    options.push(new Array(n).fill(false))
+    
+    const forceRotate = images.map(img => 
+      img.w > CONTAINER_WIDTH - gap && img.h <= CONTAINER_WIDTH - gap
+    )
+    options.push(forceRotate)
+    
+    const ratioRotate = images.map(img => {
+      if (img.w > CONTAINER_WIDTH - gap) return false
+      if (img.h > CONTAINER_WIDTH - gap) return false
+      const ratio = Math.max(img.w, img.h) / Math.min(img.w, img.h)
+      return ratio > 3 && img.h > img.w
+    })
+    options.push(ratioRotate)
+  }
+
+  console.log(`总共生成 ${options.length} 种有效旋转组合`)
+  return options
+}
+
+// Bottom-Left算法 - 增加详细调试
+function packWithBottomLeft(images, rotations, gap) {
+  const items = images.map((img, idx) => ({
+    w: rotations[idx] ? img.h : img.w,
+    h: rotations[idx] ? img.w : img.h,
+    originalIndex: idx,
+    rotated: rotations[idx],
+    area: img.w * img.h
+  })).filter(item => item.w <= CONTAINER_WIDTH - gap)
+
+  // 特别添加一个专门的"高度优化"策略
+  const sortingStrategies = [
+    // 0. 高度最小化策略：宽矩形在底部，窄条在上方叠放
+    (a, b) => {
+      const aIsWideBase = a.w > 300 && a.h < 100  // 类似400×84的底座
+      const bIsWideBase = b.w > 300 && b.h < 100
+      const aIsHorizontalStrip = a.w > 200 && a.h < 50  // 类似320×32的横条
+      const bIsHorizontalStrip = b.w > 200 && b.h < 50
+      
+      // 宽底座优先
+      if (aIsWideBase && !bIsWideBase) return -1
+      if (!aIsWideBase && bIsWideBase) return 1
+      
+      // 然后是中等方形
+      if (!aIsWideBase && !bIsWideBase && !aIsHorizontalStrip && !bIsHorizontalStrip) {
+        return b.area - a.area
+      }
+      
+      // 最后是横条
+      if (aIsHorizontalStrip && !bIsHorizontalStrip) return 1
+      if (!aIsHorizontalStrip && bIsHorizontalStrip) return -1
+      
+      return a.h - b.h  // 相同类型按高度升序
+    },
+    
+    // 1. 面积降序（经典策略）
+    (a, b) => b.area - a.area,
+    
+    // 2. 宽矩形优先，然后按面积
+    (a, b) => {
+      const aWide = a.w > a.h * 1.5
+      const bWide = b.w > b.h * 1.5
+      if (aWide && !bWide) return -1
+      if (!aWide && bWide) return 1
+      return b.area - a.area
+    },
+    
+    // 3. 高度升序，宽度降序（层次化布局）
+    (a, b) => a.h - b.h || b.w - a.w
+  ]
+
+  let bestLayout = null
+  let bestHeight = Number.POSITIVE_INFINITY
+  let bestStrategyIndex = -1
+
+  for (let i = 0; i < sortingStrategies.length; i++) {
+    const sortedItems = [...items].sort(sortingStrategies[i])
+    const result = placeItemsBottomLeft(sortedItems, gap)
+    
+    if (result.totalHeight < bestHeight) {
+      bestHeight = result.totalHeight
+      bestLayout = { ...result, rotations }
+      bestStrategyIndex = i
+    }
+  }
+
+  // 调试输出
+  if (images.length === 5 && rotations.some(r => r)) {  // 只对图组1且有旋转的情况输出调试信息
+    console.log(`旋转 [${rotations.join(', ')}]: 高度=${bestHeight.toFixed(1)}px, 策略=${bestStrategyIndex}`)
+  }
+
+  return bestLayout
+}
+
+// 核心装箱逻辑
+function placeItemsBottomLeft(items, gap) {
+  const placed = []
+
+  for (const item of items) {
+    const position = findBestPosition(placed, item, gap)
+    if (position) {
+      placed.push({
+        x: position.x,
+        y: position.y,
+        width: item.w,
+        height: item.h,
+        originalIndex: item.originalIndex,
+        rotated: item.rotated
+      })
+    }
+  }
+
+  const totalHeight = placed.length > 0 ? 
+    Math.max(...placed.map(p => p.y + p.height)) + gap : gap
+
+  return { totalHeight, layout: placed }
+}
+
+// 寻找最佳位置 - 增强空隙填充能力
+function findBestPosition(placed, item, gap) {
+  const candidates = []
+
+  // 基本位置
+  candidates.push({ x: gap, y: gap })
+
+  // 标准位置：每个已放置矩形的右边和下边
+  for (const rect of placed) {
+    candidates.push(
+      { x: rect.x + rect.width + gap, y: rect.y },
+      { x: rect.x, y: rect.y + rect.height + gap }
+    )
+  }
+
+  // 增强空隙检测：检查是否能填入更紧凑的位置
+  if (placed.length > 0) {
+    // 寻找水平空隙
+    for (let y = gap; y <= 400; y += 10) { // 扫描不同高度
+      let currentX = gap
+      let canFit = true
+      
+      // 检查这个高度是否有足够的连续空间
+      while (currentX + item.w <= CONTAINER_WIDTH && canFit) {
+        const testPos = { x: currentX, y: y }
+        if (!checkOverlap(testPos, item, placed)) {
+          candidates.push(testPos)
+          break
+        }
+        currentX += 10
+        if (currentX > CONTAINER_WIDTH - item.w) {
+          canFit = false
+        }
+      }
+    }
+
+    // 特殊检测：第一层右侧空隙
+    const firstRowItems = placed.filter(p => p.y <= gap + 10)
+    if (firstRowItems.length > 0) {
+      const rightmostX = Math.max(...firstRowItems.map(p => p.x + p.width))
+      const firstRowMaxHeight = Math.max(...firstRowItems.map(p => p.height))
+      
+      // 第一层右侧空隙
+      if (rightmostX + gap + item.w <= CONTAINER_WIDTH) {
+        candidates.push({
+          x: rightmostX + gap,
+          y: gap,
+          priority: 'first-row-right'
+        })
+        
+        // 如果物品比较矮，也可以尝试在第一层的不同高度
+        if (item.h < firstRowMaxHeight / 2) {
+          for (let offsetY = 0; offsetY < firstRowMaxHeight - item.h; offsetY += item.h + gap) {
+            candidates.push({
+              x: rightmostX + gap,
+              y: gap + offsetY,
+              priority: 'first-row-stacked'
+            })
+          }
+        }
+      }
+    }
+  }
+
+  // 过滤有效位置
+  const validPositions = candidates.filter(pos => {
+    return pos.x + item.w <= CONTAINER_WIDTH &&
+           !checkOverlap(pos, item, placed)
+  })
+
+  if (validPositions.length === 0) return null
+
+  // 选择最优位置：优先级 > 最小Y > 最小X
+  return validPositions.reduce((best, pos) => {
+    // 有特殊优先级的位置优先
+    if (pos.priority && !best.priority) return pos
+    if (!pos.priority && best.priority) return best
+    
+    // 都有优先级或都没有优先级时，比较位置
+    if (pos.y < best.y) return pos
+    if (pos.y === best.y && pos.x < best.x) return pos
+    return best
+  })
+}
+
+// 检查重叠
+function checkOverlap(pos, item, placed) {
+  const newRect = {
+    x: pos.x,
+    y: pos.y,
+    width: item.w,
+    height: item.h
+  }
+
+  return placed.some(rect => {
+    return !(newRect.x + newRect.width <= rect.x ||
+             rect.x + rect.width <= newRect.x ||
+             newRect.y + newRect.height <= rect.y ||
+             rect.y + rect.height <= newRect.y)
+  })
+}
+
+// 网格排列算法
+function packWithGrid(images, gap) {
+  const placed = []
+  const rotations = new Array(images.length).fill(false)
+
+  // 按面积排序
+  const sortedImages = images
+    .map((img, idx) => ({ ...img, originalIndex: idx }))
+    .sort((a, b) => (b.w * b.h) - (a.w * a.h))
+
+  let currentY = gap
+  let currentX = gap
+  let rowHeight = 0
+
+  for (const img of sortedImages) {
+    let width = img.w
+    let height = img.h
+    let rotated = false
+
+    // 检查是否需要旋转
+    if (img.w > CONTAINER_WIDTH - gap && img.h <= CONTAINER_WIDTH - gap) {
+      width = img.h
+      height = img.w
+      rotated = true
+    }
+
+    // 检查是否需要换行
+    if (currentX + width > CONTAINER_WIDTH) {
+      currentY += rowHeight + gap
+      currentX = gap
+      rowHeight = 0
+    }
+
+    placed.push({
+      x: currentX,
+      y: currentY,
+      width: width,
+      height: height,
+      originalIndex: img.originalIndex,
+      rotated: rotated
+    })
+
+    rotations[img.originalIndex] = rotated
+    currentX += width + gap
+    rowHeight = Math.max(rowHeight, height)
+  }
+
+  const totalHeight = currentY + rowHeight + gap
+
+  return { totalHeight, layout: placed, rotations }
+}
+
+// 渲染函数
+function renderResults(groups, gap) {
+  const container = document.getElementById('resultsContainer')
+  container.innerHTML = ''
+
+  groups.forEach((group) => {
+    const result = optimizeImageLayout(group.images, gap)
+
+    const groupDiv = document.createElement('div')
+    groupDiv.className = 'group-result'
+
+    const rotatedCount = result.rotations.filter((r) => r).length
+    const totalArea = result.layout.reduce((sum, item) => sum + item.width * item.height, 0)
+    const containerArea = CONTAINER_WIDTH * result.totalHeight
+    const efficiency = containerArea > 0 ? ((totalArea / containerArea) * 100).toFixed(1) : '0'
+
+    groupDiv.innerHTML = `
+        <div class="group-header">
+            <h3>${group.name}</h3>
+            <span>总高度: ${result.totalHeight.toFixed(1)}px</span>
+        </div>
+        <div class="group-content">
+            <div class="visualization" id="vis-${group.id}">
+                <div class="container-boundary"></div>
+            </div>
+            <div class="stats">
+                <div class="stat-row">
+                    <span><strong>图片数量:</strong></span>
+                    <span>${group.images.length} 张</span>
+                </div>
+                <div class="stat-row">
+                    <span><strong>旋转图片:</strong></span>
+                    <span>${rotatedCount} 张 (${result.rotations
+                      .map((r, i) => (r ? i + 1 : ''))
+                      .filter((i) => i)
+                      .join(', ') || '无'
+                    })</span>
+                </div>
+                <div class="stat-row">
+                    <span><strong>空间利用率:</strong></span>
+                    <span>${efficiency}%</span>
+                </div>
+                <div class="stat-row">
+                    <span><strong>容器使用:</strong></span>
+                    <span>600×${result.totalHeight.toFixed(1)}px</span>
+                </div>
+            </div>
+            <div class="algorithm-info">
+                <strong>简化多策略算法:</strong> Bottom-Left + 网格排列，自动选择最小高度方案
+            </div>
+        </div>
+    `
+
+    container.appendChild(groupDiv)
+    renderImages(group, result, gap)
+  })
+}
+
+function renderImages(group, result, gap) {
+  const container = document.getElementById(`vis-${group.id}`)
+  if (!container) return
+
+  result.layout.forEach((item) => {
+    const imgDiv = document.createElement('div')
+    imgDiv.className = `image-item color-${item.originalIndex % 8}`
+    imgDiv.style.left = `${item.x}px`
+    imgDiv.style.top = `${item.y}px`
+    imgDiv.style.width = `${item.width}px`
+    imgDiv.style.height = `${item.height}px`
+
+    const originalImg = group.images[item.originalIndex]
+    imgDiv.title = `图片${item.originalIndex + 1}\n原始: ${originalImg.w.toFixed(1)}×${originalImg.h.toFixed(1)}\n当前: ${item.width.toFixed(1)}×${item.height.toFixed(1)}\n${item.rotated ? '已旋转90°' : '未旋转'}`
+
+    imgDiv.innerHTML = `
+        <div class="image-number">${item.originalIndex + 1}</div>
+        ${item.rotated ? '<div class="rotated-indicator">↻</div>' : ''}
+    `
+
+    container.appendChild(imgDiv)
+  })
+}
+
+function showLoading() {
+  const loading = document.createElement('div')
+  loading.className = 'loading'
+  loading.innerHTML = `
+    <div class="spinner"></div>
+    <div>多策略算法优化中...</div>
+  `
+  loading.style.cssText = `
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0, 0, 0, 0.8); display: flex; flex-direction: column;
+    justify-content: center; align-items: center; color: white;
+    font-size: 20px; z-index: 1000;
+  `
+  
+  const spinner = loading.querySelector('.spinner')
+  if (spinner) {
+    spinner.style.cssText = `
+      width: 50px; height: 50px; border: 4px solid rgba(255, 255, 255, 0.3);
+      border-radius: 50%; border-top: 4px solid white;
+      animation: spin 1s linear infinite; margin-bottom: 20px;
+    `
+  }
+  
+  document.body.appendChild(loading)
+  return loading
+}
+
+async function optimize() {
+  const gap = Number.parseInt(document.getElementById('gapInput').value) || 5
+  const loading = showLoading()
+
+  setTimeout(() => {
+    renderResults(imageGroups, gap)
+    document.body.removeChild(loading)
+
+    console.log('=== 多策略算法结果 ===')
+    imageGroups.forEach((group) => {
+      const result = optimizeImageLayout(group.images, gap)
+      console.log(`\n${group.name}:`)
+      console.log(`总高度: ${result.totalHeight.toFixed(1)}px`)
+      console.log(`旋转配置: [${result.rotations.join(', ')}]`)
+      const totalArea = group.images.reduce((sum, img) => sum + img.w * img.h, 0)
+      const efficiency = ((totalArea / (CONTAINER_WIDTH * result.totalHeight)) * 100).toFixed(1)
+      console.log(`空间利用率: ${efficiency}%`)
+    })
+  }, 100)
+}
+
+document.getElementById('optimizeBtn').addEventListener('click', optimize)
+window.addEventListener('load', optimize)
+  </script>
+</body>
+
+</html>
