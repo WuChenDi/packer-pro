@@ -308,10 +308,10 @@ const imageGroups = [
     name: '图组1',
     images: [
       { w: 400.0, h: 84.4 },
-      { w: 32.3, h: 320.0 },
-      { w: 32.3, h: 320.0 },
       { w: 102.4, h: 140.0 },
       { w: 140.0, h: 102.4 },
+      { w: 32.3, h: 320.0 },
+      { w: 32.3, h: 320.0 },
     ],
   },
   {
@@ -571,44 +571,25 @@ function placeItemsBottomLeft(items, gap) {
   return { totalHeight, layout: placed }
 }
 
-// 寻找最佳位置 - 增强空隙填充能力
+// 寻找最佳位置 - 修复间隙计算问题
 function findBestPosition(placed, item, gap) {
   const candidates = []
 
   // 基本位置
   candidates.push({ x: gap, y: gap })
 
-  // 标准位置：每个已放置矩形的右边和下边
+  // 标准位置：每个已放置矩形的右边和下边，确保正确的间隙
   for (const rect of placed) {
     candidates.push(
-      { x: rect.x + rect.width + gap, y: rect.y },
-      { x: rect.x, y: rect.y + rect.height + gap }
+      { x: rect.x + rect.width + gap, y: rect.y },     // 右边，水平间隙
+      { x: rect.x, y: rect.y + rect.height + gap }     // 下边，垂直间隙
     )
   }
 
   // 增强空隙检测：检查是否能填入更紧凑的位置
   if (placed.length > 0) {
-    // 寻找水平空隙
-    for (let y = gap; y <= 400; y += 10) { // 扫描不同高度
-      let currentX = gap
-      let canFit = true
-      
-      // 检查这个高度是否有足够的连续空间
-      while (currentX + item.w <= CONTAINER_WIDTH && canFit) {
-        const testPos = { x: currentX, y: y }
-        if (!checkOverlap(testPos, item, placed)) {
-          candidates.push(testPos)
-          break
-        }
-        currentX += 10
-        if (currentX > CONTAINER_WIDTH - item.w) {
-          canFit = false
-        }
-      }
-    }
-
     // 特殊检测：第一层右侧空隙
-    const firstRowItems = placed.filter(p => p.y <= gap + 10)
+    const firstRowItems = placed.filter(p => Math.abs(p.y - gap) < 10)  // 容忍度内认为是同一行
     if (firstRowItems.length > 0) {
       const rightmostX = Math.max(...firstRowItems.map(p => p.x + p.width))
       const firstRowMaxHeight = Math.max(...firstRowItems.map(p => p.height))
@@ -621,23 +602,42 @@ function findBestPosition(placed, item, gap) {
           priority: 'first-row-right'
         })
         
-        // 如果物品比较矮，也可以尝试在第一层的不同高度
-        if (item.h < firstRowMaxHeight / 2) {
-          for (let offsetY = 0; offsetY < firstRowMaxHeight - item.h; offsetY += item.h + gap) {
-            candidates.push({
-              x: rightmostX + gap,
-              y: gap + offsetY,
-              priority: 'first-row-stacked'
-            })
+        // 在第一层右侧进行垂直叠放（保证间隙）
+        let stackY = gap
+        while (stackY + item.h <= gap + firstRowMaxHeight) {
+          candidates.push({
+            x: rightmostX + gap,
+            y: stackY,
+            priority: 'first-row-stacked'
+          })
+          stackY += item.h + gap  // 确保垂直间隙
+        }
+      }
+    }
+
+    // 寻找其他可能的叠放位置
+    for (const rect of placed) {
+      // 检查是否可以在某个矩形的右侧进行垂直叠放
+      if (rect.x + rect.width + gap + item.w <= CONTAINER_WIDTH) {
+        // 在这个矩形右侧找合适的Y位置
+        let testY = gap
+        while (testY + item.h <= 500) {  // 避免无限循环
+          const testPos = { x: rect.x + rect.width + gap, y: testY }
+          if (!checkOverlap(testPos, item, placed)) {
+            candidates.push(testPos)
+            break
           }
+          testY += 10
         }
       }
     }
   }
 
-  // 过滤有效位置
+  // 过滤有效位置，确保不重叠且在容器内
   const validPositions = candidates.filter(pos => {
-    return pos.x + item.w <= CONTAINER_WIDTH &&
+    return pos.x >= gap &&  // 确保左边界间隙
+           pos.y >= gap &&  // 确保上边界间隙
+           pos.x + item.w <= CONTAINER_WIDTH - gap &&  // 确保右边界间隙
            !checkOverlap(pos, item, placed)
   })
 
@@ -653,6 +653,24 @@ function findBestPosition(placed, item, gap) {
     if (pos.y < best.y) return pos
     if (pos.y === best.y && pos.x < best.x) return pos
     return best
+  })
+}
+
+// 检查重叠 - 加强边界检查
+function checkOverlap(pos, item, placed) {
+  const newRect = {
+    x: pos.x,
+    y: pos.y,
+    width: item.w,
+    height: item.h
+  }
+
+  return placed.some(rect => {
+    // 检查是否有重叠，需要严格的间隙
+    return !(newRect.x + newRect.width <= rect.x ||
+             rect.x + rect.width <= newRect.x ||
+             newRect.y + newRect.height <= rect.y ||
+             rect.y + rect.height <= newRect.y)
   })
 }
 

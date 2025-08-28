@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Packer Pro</title>
+  <title>Packer Pro - 彻底修复版</title>
   <style>
     * {
       box-sizing: border-box;
@@ -65,11 +65,11 @@
       color: #333;
     }
 
-    input {
+    input, select {
       padding: 8px 12px;
       border: 2px solid #667eea;
       border-radius: 6px;
-      width: 80px;
+      width: 120px;
     }
 
     button {
@@ -201,37 +201,14 @@
       margin-bottom: 0;
     }
 
-    .color-0 {
-      background: linear-gradient(135deg, #ff6b6b, #ee5a24);
-    }
-
-    .color-1 {
-      background: linear-gradient(135deg, #4ecdc4, #44a08d);
-    }
-
-    .color-2 {
-      background: linear-gradient(135deg, #45b7d1, #96c93d);
-    }
-
-    .color-3 {
-      background: linear-gradient(135deg, #f093fb, #f5576c);
-    }
-
-    .color-4 {
-      background: linear-gradient(135deg, #4facfe, #00f2fe);
-    }
-
-    .color-5 {
-      background: linear-gradient(135deg, #fad0c4, #ffd1ff);
-    }
-
-    .color-6 {
-      background: linear-gradient(135deg, #a8edea, #fed6e3);
-    }
-
-    .color-7 {
-      background: linear-gradient(135deg, #ff9a9e, #fecfef);
-    }
+    .color-0 { background: linear-gradient(135deg, #ff6b6b, #ee5a24); }
+    .color-1 { background: linear-gradient(135deg, #4ecdc4, #44a08d); }
+    .color-2 { background: linear-gradient(135deg, #45b7d1, #96c93d); }
+    .color-3 { background: linear-gradient(135deg, #f093fb, #f5576c); }
+    .color-4 { background: linear-gradient(135deg, #4facfe, #00f2fe); }
+    .color-5 { background: linear-gradient(135deg, #fad0c4, #ffd1ff); }
+    .color-6 { background: linear-gradient(135deg, #a8edea, #fed6e3); }
+    .color-7 { background: linear-gradient(135deg, #ff9a9e, #fecfef); }
 
     .algorithm-info {
       background: #e8f4fd;
@@ -242,40 +219,33 @@
       border-left: 4px solid #667eea;
     }
 
-    .loading {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(0, 0, 0, 0.8);
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      color: white;
-      font-size: 20px;
-      z-index: 1000;
+    .fix-note {
+      background: #fff3cd;
+      border-left: 4px solid #ffc107;
+      padding: 12px;
+      margin-bottom: 15px;
+      border-radius: 8px;
+      font-size: 13px;
     }
 
-    .spinner {
-      width: 50px;
-      height: 50px;
-      border: 4px solid rgba(255, 255, 255, 0.3);
-      border-radius: 50%;
-      border-top: 4px solid white;
-      animation: spin 1s linear infinite;
-      margin-bottom: 20px;
+    .comparison {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      margin-top: 20px;
     }
 
-    @keyframes spin {
-      0% {
-        transform: rotate(0deg);
-      }
+    .comparison-item {
+      background: #f8f9ff;
+      padding: 15px;
+      border-radius: 8px;
+      border: 2px solid #667eea;
+    }
 
-      100% {
-        transform: rotate(360deg);
-      }
+    .comparison-title {
+      font-weight: bold;
+      margin-bottom: 10px;
+      color: #667eea;
     }
   </style>
 </head>
@@ -283,8 +253,8 @@
 <body>
   <div class="container">
     <div class="header">
-      <h1>🎨 图片排列算法优化器</h1>
-      <p class="subtitle">智能2D装箱算法，最小化总高度，支持图片旋转</p>
+      <h1>🎨 彻底修复版图片排列算法</h1>
+      <p class="subtitle">专门解决细长图片的空间浪费问题</p>
 
       <div class="controls">
         <div class="control-group">
@@ -305,13 +275,13 @@
     const imageGroups = [
       {
         id: 1,
-        name: '图组1',
+        name: '图组1 - 问题案例',
         images: [
           { w: 400.0, h: 84.4 },
+          { w: 32.3, h: 320.0 },
+          { w: 32.3, h: 320.0 },
           { w: 102.4, h: 140.0 },
           { w: 140.0, h: 102.4 },
-          { w: 32.3, h: 320.0 },
-          { w: 32.3, h: 320.0 },
         ],
       },
       {
@@ -384,313 +354,342 @@
 
     const CONTAINER_WIDTH = 600
 
-    // 核心算法：真正的空隙感知装箱算法
-    function optimizeImageLayout(images, gap) {
-      const n = images.length
-      if (n === 0) return { totalHeight: 0, layout: [], rotations: [] }
-
-      let bestResult = null
-      let minHeight = Number.POSITIVE_INFINITY
-
-      // 尝试多种旋转组合
-      const rotationCombinations = generateOptimalRotations(images, gap)
+    // 核心修复算法：垂直空间填充优先算法
+    function fixedVerticalPackingAlgorithm(images, gap) {
+      console.log('开始垂直空间填充算法...')
       
-      for (const rotations of rotationCombinations) {
-        const result = packWithSpaceAwareness(images, rotations, gap)
-        if (result && result.totalHeight < minHeight) {
-          minHeight = result.totalHeight
-          bestResult = result
+      // 分析图片特征
+      const items = images.map((img, idx) => {
+        const aspectRatio = img.w / img.h
+        const area = img.w * img.h
+        
+        return {
+          originalIndex: idx,
+          normal: { w: img.w, h: img.h, rotated: false },
+          rotated: { w: img.h, h: img.w, rotated: true },
+          aspectRatio,
+          area,
+          isVeryTall: img.h > img.w * 3, // 很高的图片
+          isVeryWide: img.w > img.h * 3, // 很宽的图片
+          canFitNormal: img.w <= CONTAINER_WIDTH - gap,
+          canFitRotated: img.h <= CONTAINER_WIDTH - gap
+        }
+      })
+
+      console.log('图片分析结果:', items)
+
+      // 策略：优先处理大图片和特殊比例图片
+      const sortedItems = [...items].sort((a, b) => {
+        // 优先级1：很宽的图片放最前面
+        if (a.isVeryWide && !b.isVeryWide) return -1
+        if (!a.isVeryWide && b.isVeryWide) return 1
+        
+        // 优先级2：面积大的图片
+        if (Math.abs(a.area - b.area) > 1000) {
+          return b.area - a.area
+        }
+        
+        // 优先级3：很高的图片放后面，便于填充空隙
+        if (a.isVeryTall && !b.isVeryTall) return 1
+        if (!a.isVeryTall && b.isVeryTall) return -1
+        
+        return 0
+      })
+
+      const placed = []
+      const rotations = new Array(images.length).fill(false)
+
+      for (const item of sortedItems) {
+        console.log(`正在处理图片${item.originalIndex + 1}:`, item)
+        
+        // 确定使用哪个方向
+        let bestOption = null
+        
+        if (item.canFitNormal && item.canFitRotated) {
+          // 两个方向都可以，需要智能选择
+          if (item.isVeryWide) {
+            // 很宽的图片保持原方向
+            bestOption = item.normal
+          } else if (item.isVeryTall) {
+            // 很高的图片：如果当前有合适的垂直空间就不旋转，否则旋转
+            const verticalSpaceNeeded = item.normal.h
+            const hasVerticalSpace = checkVerticalSpace(placed, verticalSpaceNeeded, gap)
+            bestOption = hasVerticalSpace ? item.normal : item.rotated
+          } else {
+            // 普通图片：选择更适合当前空间的方向
+            const normalPos = findOptimalPosition(placed, item.normal, gap)
+            const rotatedPos = findOptimalPosition(placed, item.rotated, gap)
+            
+            if (normalPos && rotatedPos) {
+              // 选择y坐标更小的位置
+              bestOption = normalPos.y <= rotatedPos.y ? item.normal : item.rotated
+            } else if (normalPos) {
+              bestOption = item.normal
+            } else if (rotatedPos) {
+              bestOption = item.rotated
+            }
+          }
+        } else if (item.canFitNormal) {
+          bestOption = item.normal
+        } else if (item.canFitRotated) {
+          bestOption = item.rotated
+        }
+
+        if (!bestOption) {
+          console.log(`图片${item.originalIndex + 1}无法放置`)
+          continue
+        }
+
+        // 寻找最佳位置
+        const position = findOptimalPosition(placed, bestOption, gap)
+        
+        if (position) {
+          placed.push({
+            x: position.x,
+            y: position.y,
+            width: bestOption.w,
+            height: bestOption.h,
+            originalIndex: item.originalIndex,
+            rotated: bestOption.rotated,
+          })
+          rotations[item.originalIndex] = bestOption.rotated
+          
+          console.log(`图片${item.originalIndex + 1}已放置:`, {
+            x: position.x,
+            y: position.y,
+            width: bestOption.w,
+            height: bestOption.h,
+            rotated: bestOption.rotated
+          })
         }
       }
 
-      return bestResult || { totalHeight: Number.POSITIVE_INFINITY, layout: [], rotations: [] }
+      const totalHeight = placed.length > 0 
+        ? Math.max(...placed.map(p => p.y + p.height)) + gap 
+        : 0
+
+      console.log('最终布局结果:', { totalHeight, placed, rotations })
+
+      return {
+        totalHeight,
+        layout: placed,
+        rotations,
+        algorithm: '垂直空间填充算法'
+      }
     }
 
-    // 空间感知装箱算法
-    function packWithSpaceAwareness(images, rotations, gap) {
-      const placed = []
-      const used = new Array(images.length).fill(false)
+    // 检查是否有足够的垂直空间
+    function checkVerticalSpace(placed, neededHeight, gap) {
+      if (placed.length === 0) return true
       
-      // 准备图片项目
-      const items = images.map((img, idx) => ({
-        w: rotations[idx] ? img.h : img.w,
-        h: rotations[idx] ? img.w : img.h,
-        originalIndex: idx,
-        rotated: rotations[idx],
-        area: img.w * img.h
-      })).filter(item => item.w <= CONTAINER_WIDTH - gap)
+      const maxY = Math.max(...placed.map(p => p.y + p.height))
+      const availableHeight = 400 - maxY - gap // 假设容器高度为400
+      
+      return availableHeight >= neededHeight + gap
+    }
 
-      // 第一步：放置最大的宽矩形作为基础
-      const baseItem = items
-        .filter(item => !used[item.originalIndex])
-        .sort((a, b) => {
-          const aWide = a.w > a.h * 1.5
-          const bWide = b.w > b.h * 1.5
-          if (aWide && !bWide) return -1
-          if (!aWide && bWide) return 1
-          return b.area - a.area
-        })[0]
-      
-      if (baseItem) {
-        placed.push({
-          x: gap,
-          y: gap,
-          width: baseItem.w,
-          height: baseItem.h,
-          originalIndex: baseItem.originalIndex,
-          rotated: baseItem.rotated
+    // 寻找最优位置（重新实现，专注解决空间浪费）
+    function findOptimalPosition(placed, item, gap) {
+      if (item.w > CONTAINER_WIDTH - gap) return null
+
+      const candidates = []
+
+      // 候选位置1：左上角
+      candidates.push({ 
+        x: gap, 
+        y: gap, 
+        score: calculatePositionScore(gap, gap, placed, item, gap)
+      })
+
+      // 候选位置2：在现有图片的右侧和下方
+      for (const p of placed) {
+        // 右侧
+        if (p.x + p.width + gap + item.w <= CONTAINER_WIDTH) {
+          const x = p.x + p.width + gap
+          const y = p.y
+          candidates.push({
+            x,
+            y,
+            score: calculatePositionScore(x, y, placed, item, gap)
+          })
+        }
+
+        // 下方（对齐左边）
+        const x1 = p.x
+        const y1 = p.y + p.height + gap
+        candidates.push({
+          x: x1,
+          y: y1,
+          score: calculatePositionScore(x1, y1, placed, item, gap)
         })
-        used[baseItem.originalIndex] = true
+
+        // 下方（左对齐容器）
+        const x2 = gap
+        const y2 = p.y + p.height + gap
+        candidates.push({
+          x: x2,
+          y: y2,
+          score: calculatePositionScore(x2, y2, placed, item, gap)
+        })
       }
 
-      // 主循环：持续寻找最优空隙填充
-      while (used.some(u => !u)) {
-        const currentSpaces = analyzeAvailableSpaces(placed, gap, CONTAINER_WIDTH)
-        let bestMove = null
-        let bestScore = -1
-
-        // 为每个未使用的图片评估所有可能的放置位置
-        items.forEach(item => {
-          if (used[item.originalIndex]) return
-
-          currentSpaces.forEach(space => {
-            if (item.w <= space.width && item.h <= space.height) {
-              const score = calculatePlacementScore(item, space, placed, gap)
-              if (score > bestScore) {
-                bestScore = score
-                bestMove = {
-                  item,
-                  space,
-                  x: space.x,
-                  y: space.y
-                }
-              }
-            }
+      // 候选位置3：寻找可以填充的空隙
+      const gaps = findGaps(placed, gap)
+      for (const gapRect of gaps) {
+        if (gapRect.width >= item.w && gapRect.height >= item.h) {
+          candidates.push({
+            x: gapRect.x,
+            y: gapRect.y,
+            score: calculatePositionScore(gapRect.x, gapRect.y, placed, item, gap) - 100 // 填充空隙优先
           })
-        })
+        }
+      }
 
-        if (bestMove) {
-          placed.push({
-            x: bestMove.x,
-            y: bestMove.y,
-            width: bestMove.item.w,
-            height: bestMove.item.h,
-            originalIndex: bestMove.item.originalIndex,
-            rotated: bestMove.item.rotated
-          })
-          used[bestMove.item.originalIndex] = true
-        } else {
+      // 过滤重叠位置
+      const validPositions = candidates.filter(pos => {
+        return !isOverlapping(pos, item, placed, gap)
+      })
+
+      if (validPositions.length === 0) return null
+
+      // 选择评分最佳的位置
+      validPositions.sort((a, b) => a.score - b.score)
+      
+      console.log(`图片位置候选:`, validPositions.slice(0, 3))
+      
+      return validPositions[0]
+    }
+
+    // 计算位置评分（分数越低越好）
+    function calculatePositionScore(x, y, placed, item, gap) {
+      let score = y * 10 // 基础分：y坐标越低越好
+      
+      // 奖励：靠左放置
+      score += x * 0.1
+      
+      // 奖励：紧密放置（减少孤立）
+      let hasNeighbor = false
+      for (const p of placed) {
+        const distance = Math.abs(x - p.x) + Math.abs(y - p.y)
+        if (distance < item.w + item.h) {
+          hasNeighbor = true
+          score -= 20 // 有邻居的位置更好
           break
         }
       }
-
-      const totalHeight = placed.length > 0 ? 
-        Math.max(...placed.map(p => p.y + p.height)) + gap : 0
-
-      return { totalHeight, layout: placed, rotations }
-    }
-
-    // 分析可用空间
-    function analyzeAvailableSpaces(placed, gap, containerWidth) {
-      const spaces = []
       
-      if (placed.length === 0) {
-        spaces.push({
-          x: gap,
-          y: gap,
-          width: containerWidth - gap,
-          height: Number.POSITIVE_INFINITY,
-          type: 'initial'
-        })
-        return spaces
-      }
-
-      // 生成网格点
-      const xPoints = [gap]
-      const yPoints = [gap]
-      
-      placed.forEach(rect => {
-        xPoints.push(rect.x, rect.x + rect.width + gap)
-        yPoints.push(rect.y, rect.y + rect.height + gap)
-      })
-      
-      // 去重并排序
-      const uniqueXs = [...new Set(xPoints)].sort((a, b) => a - b)
-      const uniqueYs = [...new Set(yPoints)].sort((a, b) => a - b)
-
-      // 检查每个可能的矩形区域
-      for (let i = 0; i < uniqueXs.length; i++) {
-        for (let j = i + 1; j < uniqueXs.length; j++) {
-          for (let k = 0; k < uniqueYs.length; k++) {
-            for (let l = k + 1; l < uniqueYs.length; l++) {
-              const candidateSpace = {
-                x: uniqueXs[i],
-                y: uniqueYs[k],
-                width: uniqueXs[j] - uniqueXs[i] - gap,
-                height: uniqueYs[l] - uniqueYs[k] - gap
-              }
-
-              // 检查这个空间是否可用
-              if (candidateSpace.width > 0 && 
-                  candidateSpace.height > 0 &&
-                  candidateSpace.x + candidateSpace.width <= containerWidth &&
-                  !isSpaceOccupied(candidateSpace, placed)) {
-                
-                spaces.push({
-                  ...candidateSpace,
-                  area: candidateSpace.width * candidateSpace.height,
-                  type: 'calculated'
-                })
-              }
-            }
-          }
-        }
-      }
-
-      // 添加右侧和下方的开放空间
-      const maxX = Math.max(...placed.map(p => p.x + p.width))
-      const maxY = Math.max(...placed.map(p => p.y + p.height))
-      
-      // 右侧空间
-      if (maxX + gap < containerWidth) {
-        spaces.push({
-          x: maxX + gap,
-          y: gap,
-          width: containerWidth - maxX - gap,
-          height: maxY,
-          area: (containerWidth - maxX - gap) * maxY,
-          type: 'right'
-        })
-      }
-      
-      // 下方空间（全宽）
-      spaces.push({
-        x: gap,
-        y: maxY + gap,
-        width: containerWidth - gap,
-        height: Number.POSITIVE_INFINITY,
-        area: Number.POSITIVE_INFINITY,
-        type: 'bottom'
-      })
-
-      // 按面积和位置优先级排序
-      return spaces.sort((a, b) => {
-        if (a.y !== b.y) return a.y - b.y // 优先较低的Y
-        if (a.x !== b.x) return a.x - b.x // 其次较左的X
-        return b.area - a.area // 最后较大的面积
-      })
-    }
-
-    // 检查空间是否被占用
-    function isSpaceOccupied(space, placed) {
-      return placed.some(rect => {
-        return !(space.x + space.width <= rect.x ||
-                rect.x + rect.width <= space.x ||
-                space.y + space.height <= rect.y ||
-                rect.y + rect.height <= space.y)
-      })
-    }
-
-    // 计算放置得分
-    function calculatePlacementScore(item, space, placed, gap) {
-      let score = 0
-      
-      // 基础得分：优先使用较低的位置
-      score += (1000 - space.y) * 10
-      
-      // 空间利用率得分
-      const utilization = (item.w * item.h) / (space.width * space.height)
-      score += utilization * 100
-      
-      // 紧密度得分：与现有矩形相邻
-      let adjacencyBonus = 0
-      placed.forEach(rect => {
-        const xAdjacent = (Math.abs(space.x - (rect.x + rect.width)) < gap * 2) ||
-                          (Math.abs(space.x + item.w - rect.x) < gap * 2)
-        const yAdjacent = (Math.abs(space.y - (rect.y + rect.height)) < gap * 2) ||
-                          (Math.abs(space.y + item.h - rect.y) < gap * 2)
-        
-        if (xAdjacent && yAdjacent) {
-          adjacencyBonus += 50
-        } else if (xAdjacent || yAdjacent) {
-          adjacencyBonus += 20
-        }
-      })
-      score += adjacencyBonus
-      
-      // 形状匹配得分
-      if (space.type === 'right' && item.h > item.w) {
-        score += 200 // 细长物体放在右侧空隙
-      }
-      
-      // 减少总高度得分
-      const currentMaxHeight = Math.max(...placed.map(p => p.y + p.height))
-      const newMaxHeight = Math.max(currentMaxHeight, space.y + item.h)
-      if (newMaxHeight <= currentMaxHeight) {
-        score += 300 // 不增加总高度的放置
+      // 惩罚：产生难以填充的小空隙
+      const wouldCreateSmallGap = checkWouldCreateSmallGap(x, y, item, placed, gap)
+      if (wouldCreateSmallGap) {
+        score += 50
       }
       
       return score
     }
 
-    // 生成最优旋转组合
-    function generateOptimalRotations(images, gap) {
-      const combinations = []
+    // 检查是否会产生小空隙
+    function checkWouldCreateSmallGap(x, y, item, placed, gap) {
+      // 简化实现：检查右边和下面是否会留下很小的空间
+      const rightSpace = CONTAINER_WIDTH - (x + item.w + gap)
+      const minGapThreshold = 50 // 小于50px的空隙认为是浪费
       
-      // 基础组合：不旋转
-      combinations.push(new Array(images.length).fill(false))
-      
-      // 智能组合：根据图片特征决定旋转
-      const smartRotation = images.map((img, idx) => {
-        // 太宽超出容器的必须旋转
-        if (img.w > CONTAINER_WIDTH - gap && img.h <= CONTAINER_WIDTH - gap) {
-          return true
-        }
-        // 太高无法旋转的不旋转
-        if (img.h > CONTAINER_WIDTH - gap) {
-          return false
-        }
-        // 长宽比过大的考虑旋转
-        return img.w > img.h * 2.5
-      })
-      combinations.push(smartRotation)
-      
-      // 细长图片旋转组合
-      const thinItemRotation = images.map((img, idx) => {
-        const ratio = Math.max(img.w, img.h) / Math.min(img.w, img.h)
-        return ratio > 5 && img.h <= CONTAINER_WIDTH - gap // 很细长的图片尝试旋转
-      })
-      combinations.push(thinItemRotation)
-      
-      // 混合策略
-      const mixed = images.map((img, idx) => {
-        return (idx % 2 === 0) ? smartRotation[idx] : !smartRotation[idx]
-      })
-      combinations.push(mixed)
-
-      return combinations.filter(rotation => 
-        rotation.every((rotated, idx) => {
-          const width = rotated ? images[idx].h : images[idx].w
-          return width <= CONTAINER_WIDTH - gap
-        })
-      )
+      return rightSpace > 0 && rightSpace < minGapThreshold
     }
 
-    // 渲染函数
+    // 寻找可填充的空隙
+    function findGaps(placed, gap) {
+      if (placed.length === 0) return []
+      
+      const gaps = []
+      const maxY = Math.max(...placed.map(p => p.y + p.height))
+      
+      // 简化实现：寻找一些基本的矩形空隙
+      for (let y = gap; y < maxY; y += 20) {
+        for (let x = gap; x < CONTAINER_WIDTH - gap; x += 20) {
+          const width = findMaxWidth(x, y, placed, gap)
+          const height = findMaxHeight(x, y, placed, gap)
+          
+          if (width >= 50 && height >= 30) { // 足够大的空隙才考虑
+            gaps.push({ x, y, width, height })
+          }
+        }
+      }
+      
+      return gaps
+    }
+
+    // 在指定位置寻找最大可用宽度
+    function findMaxWidth(startX, startY, placed, gap) {
+      let maxWidth = CONTAINER_WIDTH - startX - gap
+      
+      for (const p of placed) {
+        if (startY < p.y + p.height && startY + 30 > p.y) { // 假设最小高度30
+          if (p.x > startX) {
+            maxWidth = Math.min(maxWidth, p.x - startX - gap)
+          }
+        }
+      }
+      
+      return Math.max(0, maxWidth)
+    }
+
+    // 在指定位置寻找最大可用高度
+    function findMaxHeight(startX, startY, placed, gap) {
+      let maxHeight = 400 - startY - gap // 假设容器高度400
+      
+      for (const p of placed) {
+        if (startX < p.x + p.width && startX + 50 > p.x) { // 假设最小宽度50
+          if (p.y > startY) {
+            maxHeight = Math.min(maxHeight, p.y - startY - gap)
+          }
+        }
+      }
+      
+      return Math.max(0, maxHeight)
+    }
+
+    // 检查重叠
+    function isOverlapping(pos, item, placed, gap) {
+      const rect1 = {
+        x: pos.x,
+        y: pos.y,
+        width: item.w,
+        height: item.h,
+      }
+
+      return placed.some(p => {
+        const rect2 = {
+          x: p.x,
+          y: p.y,
+          width: p.width,
+          height: p.height,
+        }
+
+        return !(
+          rect1.x + rect1.width <= rect2.x ||
+          rect2.x + rect2.width <= rect1.x ||
+          rect1.y + rect1.height <= rect2.y ||
+          rect2.y + rect2.height <= rect1.y
+        )
+      })
+    }
+
+    // 渲染结果
     function renderResults(groups, gap) {
       const container = document.getElementById('resultsContainer')
       container.innerHTML = ''
 
-      groups.forEach((group) => {
-        const result = optimizeImageLayout(group.images, gap)
+      groups.forEach(group => {
+        const result = fixedVerticalPackingAlgorithm(group.images, gap)
 
         const groupDiv = document.createElement('div')
         groupDiv.className = 'group-result'
 
-        const rotatedCount = result.rotations.filter((r) => r).length
-        const totalArea = result.layout.reduce((sum, item) => sum + item.width * item.height, 0)
-        const containerArea = CONTAINER_WIDTH * result.totalHeight
-        const efficiency = containerArea > 0 ? ((totalArea / containerArea) * 100).toFixed(1) : '0'
+        const rotatedCount = result.rotations.filter(r => r).length
+        const efficiency = result.layout.length > 0 
+          ? (result.layout.reduce((sum, item) => sum + item.width * item.height, 0) /
+             (CONTAINER_WIDTH * result.totalHeight) * 100).toFixed(1)
+          : 0
 
         groupDiv.innerHTML = `
             <div class="group-header">
@@ -698,10 +697,18 @@
                 <span>总高度: ${result.totalHeight.toFixed(1)}px</span>
             </div>
             <div class="group-content">
+                <div class="fix-note">
+                    <strong>🔧 核心修复:</strong> 
+                    ${group.id === 1 ? '针对图组1的空间浪费问题，采用垂直空间填充算法，优先处理大图片，智能选择细长图片的放置方向' : '使用垂直空间填充算法优化布局'}
+                </div>
                 <div class="visualization" id="vis-${group.id}">
                     <div class="container-boundary"></div>
                 </div>
                 <div class="stats">
+                    <div class="stat-row">
+                        <span><strong>算法:</strong></span>
+                        <span>${result.algorithm}</span>
+                    </div>
                     <div class="stat-row">
                         <span><strong>图片数量:</strong></span>
                         <span>${group.images.length} 张</span>
@@ -719,9 +726,17 @@
                         <span>${efficiency}%</span>
                     </div>
                     <div class="stat-row">
-                        <span><strong>容器使用:</strong></span>
-                        <span>600×${result.totalHeight.toFixed(1)}px</span>
+                        <span><strong>容器宽度:</strong></span>
+                        <span>${CONTAINER_WIDTH}px</span>
                     </div>
+                </div>
+                <div class="algorithm-info">
+                    <strong>算法原理:</strong> 
+                    1. 分析图片特征（宽高比、面积、特殊比例）<br>
+                    2. 优先放置大图片和很宽的图片建立基础布局<br>
+                    3. 智能选择细长图片的旋转方向，避免产生大面积空白<br>
+                    4. 寻找并填充可利用的空隙区域<br>
+                    5. 位置评分机制确保紧密排列
                 </div>
             </div>
         `
@@ -731,11 +746,12 @@
       })
     }
 
+    // 渲染图片可视化
     function renderImages(group, result, gap) {
       const container = document.getElementById(`vis-${group.id}`)
       if (!container) return
 
-      result.layout.forEach((item) => {
+      result.layout.forEach((item, index) => {
         const imgDiv = document.createElement('div')
         imgDiv.className = `image-item color-${item.originalIndex % 8}`
         imgDiv.style.left = `${item.x}px`
@@ -747,64 +763,81 @@
         imgDiv.title = `图片${item.originalIndex + 1}\n原始: ${originalImg.w.toFixed(1)}×${originalImg.h.toFixed(1)}\n当前: ${item.width.toFixed(1)}×${item.height.toFixed(1)}\n${item.rotated ? '已旋转90°' : '未旋转'}`
 
         imgDiv.innerHTML = `
-            <div class="image-number">${item.originalIndex + 1}</div>
-            ${item.rotated ? '<div class="rotated-indicator">↻</div>' : ''}
+                    <div class="image-number">${item.originalIndex + 1}</div>
+                    ${item.rotated ? '<div class="rotated-indicator">↻</div>' : ''}
         `
 
         container.appendChild(imgDiv)
       })
     }
 
-    function showLoading() {
-      const loading = document.createElement('div')
-      loading.className = 'loading'
-      loading.innerHTML = `
-        <div class="spinner"></div>
-        <div>空隙感知算法计算中...</div>
-      `
-      loading.style.cssText = `
-        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-        background: rgba(0, 0, 0, 0.8); display: flex; flex-direction: column;
-        justify-content: center; align-items: center; color: white;
-        font-size: 20px; z-index: 1000;
-      `
-      
-      const spinner = loading.querySelector('.spinner')
-      if (spinner) {
-        spinner.style.cssText = `
-          width: 50px; height: 50px; border: 4px solid rgba(255, 255, 255, 0.3);
-          border-radius: 50%; border-top: 4px solid white;
-          animation: spin 1s linear infinite; margin-bottom: 20px;
-        `
-      }
-      
-      document.body.appendChild(loading)
-      return loading
-    }
-
+    // 主执行函数
     async function optimize() {
-      const gap = Number.parseInt(document.getElementById('gapInput').value) || 5
-      const loading = showLoading()
+      const gap = parseInt(document.getElementById('gapInput').value) || 5
+
+      const resultsContainer = document.getElementById('resultsContainer')
+      resultsContainer.innerHTML = '<div style="text-align: center; padding: 50px; color: #667eea;"><div style="font-size: 18px; margin-bottom: 10px;">🔄 正在运行修复算法...</div><div>专门解决细长图片的空间浪费问题</div></div>'
 
       setTimeout(() => {
         renderResults(imageGroups, gap)
-        document.body.removeChild(loading)
 
-        console.log('=== 空隙感知算法结果 ===')
-        imageGroups.forEach((group) => {
-          const result = optimizeImageLayout(group.images, gap)
+        console.log('=== 彻底修复版算法结果 ===')
+        imageGroups.forEach(group => {
+          const result = fixedVerticalPackingAlgorithm(group.images, gap)
           console.log(`\n${group.name}:`)
+          console.log(`算法: ${result.algorithm}`)
           console.log(`总高度: ${result.totalHeight.toFixed(1)}px`)
-          console.log(`旋转配置: [${result.rotations.join(', ')}]`)
-          const totalArea = group.images.reduce((sum, img) => sum + img.w * img.h, 0)
-          const efficiency = ((totalArea / (CONTAINER_WIDTH * result.totalHeight)) * 100).toFixed(1)
+          
+          const efficiency = result.layout.length > 0 
+            ? (result.layout.reduce((sum, item) => sum + item.width * item.height, 0) / (CONTAINER_WIDTH * result.totalHeight) * 100).toFixed(1)
+            : 0
           console.log(`空间利用率: ${efficiency}%`)
+          console.log(`旋转配置: [${result.rotations.join(', ')}]`)
+          
+          // 特别分析图组1的改进
+          if (group.id === 1) {
+            console.log('\n=== 图组1详细分析 ===')
+            result.layout.forEach((item, idx) => {
+              const original = group.images[item.originalIndex]
+              console.log(`图片${item.originalIndex + 1}: 原始${original.w}×${original.h} → 当前${item.width}×${item.height} 位置(${item.x}, ${item.y}) ${item.rotated ? '已旋转' : ''}`)
+            })
+            
+            // 计算空白区域
+            const usedArea = result.layout.reduce((sum, item) => sum + item.width * item.height, 0)
+            const totalArea = CONTAINER_WIDTH * result.totalHeight
+            const wastedArea = totalArea - usedArea
+            console.log(`总面积: ${totalArea.toFixed(1)}, 已使用: ${usedArea.toFixed(1)}, 浪费: ${wastedArea.toFixed(1)} (${(wastedArea/totalArea*100).toFixed(1)}%)`)
+          }
         })
-      }, 100)
+      }, 800)
     }
 
+    // 事件监听
     document.getElementById('optimizeBtn').addEventListener('click', optimize)
-    window.addEventListener('load', optimize)
+
+    // 页面加载后自动执行
+    window.addEventListener('load', () => {
+      setTimeout(optimize, 200)
+    })
+
+    // 添加一些调试信息显示
+    function addDebugInfo() {
+      console.log('=== 图片数据分析 ===')
+      imageGroups.forEach(group => {
+        console.log(`\n${group.name}:`)
+        group.images.forEach((img, idx) => {
+          const aspectRatio = (img.w / img.h).toFixed(2)
+          const area = (img.w * img.h).toFixed(1)
+          const isVeryTall = img.h > img.w * 3
+          const isVeryWide = img.w > img.h * 3
+          
+          console.log(`  图片${idx + 1}: ${img.w}×${img.h}, 比例${aspectRatio}, 面积${area}, ${isVeryWide ? '很宽' : isVeryTall ? '很高' : '普通'}`)
+        })
+      })
+    }
+
+    // 执行调试分析
+    addDebugInfo()
   </script>
 </body>
 
