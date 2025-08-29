@@ -400,41 +400,320 @@
 
     const CONTAINER_WIDTH = 600
 
-    // 核心优化算法：混合策略
+    // 智能布局算法
     function optimizeImageLayout(images, gap) {
       const n = images.length
       if (n === 0) return { totalHeight: 0, layout: [], rotations: [] }
 
+      // 第一阶段：图片分析和分类
+      const analysis = analyzeImageCharacteristics(images)
+
+      // 第二阶段：智能策略选择
+      const strategies = selectOptimalStrategies(analysis, gap)
+
+      // 第三阶段：评估和选择最优方案
       let bestResult = null
       let minHeight = Number.POSITIVE_INFINITY
 
-      // 策略1: 贪心算法 - 优先放置大图
-      const greedyResult = greedyPlacement(images, gap)
-      if (greedyResult.totalHeight < minHeight) {
-        minHeight = greedyResult.totalHeight
-        bestResult = greedyResult
+      for (const strategy of strategies) {
+        try {
+          const result = strategy()
+          if (result && result.totalHeight < minHeight && result.layout.length === images.length) {
+            minHeight = result.totalHeight
+            bestResult = result
+          }
+        } catch (e) {
+          console.warn('Layout strategy failed:', e)
+        }
       }
 
-      // 策略2: 底部左对齐算法
-      const bottomLeftResult = bottomLeftFit(images, gap)
-      if (bottomLeftResult.totalHeight < minHeight) {
-        minHeight = bottomLeftResult.totalHeight
-        bestResult = bottomLeftResult
-      }
-
-      // 策略3: 遗传算法优化（简化版）
-      const geneticResult = geneticOptimization(images, gap)
-      if (geneticResult.totalHeight < minHeight) {
-        minHeight = geneticResult.totalHeight
-        bestResult = geneticResult
-      }
-
-      return bestResult
+      return bestResult || greedyPlacement(images, gap)
     }
 
-    // 贪心算法：优先放置大图
+    // 智能策略选择
+    function selectOptimalStrategies(analysis, gap) {
+      const strategies = []
+
+      // 评估是否适合列布局
+      if (shouldUseColumnLayout(analysis)) {
+        strategies.push(() => columnBasedLayout(analysis, gap))
+      }
+
+      // 评估是否适合分层布局
+      if (shouldUseLayeredLayout(analysis)) {
+        strategies.push(() => layeredLayout(analysis, gap))
+      }
+
+      // 混合策略作为中间选项
+      strategies.push(() => hybridLayout(analysis, gap))
+
+      // 原始贪心算法作为保底
+      strategies.push(() => greedyPlacement(analysis.items.map(item => ({
+        w: item.w,
+        h: item.h
+      })), gap))
+
+      return strategies
+    }
+
+    // 判断是否适合列布局
+    function shouldUseColumnLayout(analysis) {
+      const { tallItems, normalItems, items } = analysis
+
+      // 条件1：必须有足够多的超高图片
+      if (tallItems.length < 3) return false
+
+      // 条件2：超高图片占总数的比例要合理
+      const tallRatio = tallItems.length / items.length
+      if (tallRatio < 0.3 || tallRatio > 0.7) return false
+
+      // 条件3：旋转后的超高图片宽度要合理
+      const maxRotatedWidth = Math.max(...tallItems.map(item => item.h))
+      if (maxRotatedWidth > CONTAINER_WIDTH * 0.5) return false
+
+      // 条件4：普通图片要能有效利用剩余空间
+      const rightColumnWidth = CONTAINER_WIDTH - maxRotatedWidth - 15 // 考虑间距
+      const normalItemsFit = normalItems.filter(item =>
+        item.w <= rightColumnWidth || item.h <= rightColumnWidth
+      ).length
+
+      if (normalItemsFit < normalItems.length * 0.8) return false
+
+      return true
+    }
+
+    // 判断是否适合分层布局
+    function shouldUseLayeredLayout(analysis) {
+      const { items } = analysis
+
+      // 条件1：图片尺寸差异较大时适合分层
+      const areas = items.map(item => item.area)
+      const maxArea = Math.max(...areas)
+      const minArea = Math.min(...areas)
+      const areaVariance = maxArea / minArea
+
+      if (areaVariance < 2) return false // 尺寸差异不大时不适合
+
+      // 条件2：有明显的旋转收益图片
+      const highBenefitItems = items.filter(item => item.rotationBenefit > 0.2)
+      if (highBenefitItems.length === 0) return false
+
+      return true
+    }
+
+    // 图片特征分析
+    function analyzeImageCharacteristics(images) {
+      const items = images.map((img, idx) => {
+        const aspectRatio = img.w / img.h
+        const area = img.w * img.h
+
+        return {
+          originalIndex: idx,
+          w: img.w,
+          h: img.h,
+          area,
+          aspectRatio,
+          isVeryTall: img.h > img.w * 4,
+          isVeryWide: img.w > img.h * 4,
+          isSquare: Math.abs(aspectRatio - 1) < 0.3,
+          category: categorizeImage(img),
+          rotationBenefit: calculateRotationBenefit(img)
+        }
+      })
+
+      return {
+        items,
+        tallItems: items.filter(item => item.isVeryTall),
+        wideItems: items.filter(item => item.isVeryWide),
+        squareItems: items.filter(item => item.isSquare),
+        normalItems: items.filter(item => !item.isVeryTall && !item.isVeryWide && !item.isSquare)
+      }
+    }
+
+    function categorizeImage(img) {
+      const aspectRatio = img.w / img.h
+      if (aspectRatio > 4) return 'very-wide'
+      if (aspectRatio < 0.25) return 'very-tall'
+      if (aspectRatio > 1.5) return 'wide'
+      if (aspectRatio < 0.67) return 'tall'
+      return 'normal'
+    }
+
+    function calculateRotationBenefit(img) {
+      // 计算旋转后是否更适合容器
+      const originalFit = Math.min(img.w / CONTAINER_WIDTH, 1)
+      const rotatedFit = Math.min(img.h / CONTAINER_WIDTH, 1)
+
+      // 只有在旋转后明显更适合时才推荐旋转
+      const benefit = rotatedFit - originalFit
+      return benefit > 0.1 ? benefit : 0
+    }
+
+    // 列布局
+    function columnBasedLayout(analysis, gap) {
+      const { tallItems, normalItems } = analysis
+
+      const placed = []
+      const rotations = new Array(analysis.items.length).fill(false)
+
+      // 计算左列宽度
+      const rotatedTallItems = tallItems.map(item => ({
+        ...item,
+        w: item.h,
+        h: item.w,
+        rotated: true
+      }))
+
+      const leftColumnWidth = Math.max(...rotatedTallItems.map(item => item.w))
+
+      // 放置左列
+      let leftY = gap
+      for (const item of rotatedTallItems) {
+        placed.push({
+          x: gap,
+          y: leftY,
+          width: item.w,
+          height: item.h,
+          originalIndex: item.originalIndex,
+          rotated: true
+        })
+        rotations[item.originalIndex] = true
+        leftY += item.h + gap
+      }
+
+      // 放置右列
+      const rightX = gap + leftColumnWidth + gap
+      const rightColumnWidth = CONTAINER_WIDTH - rightX - gap
+      let rightY = gap
+
+      const sortedNormalItems = [...normalItems].sort((a, b) => b.area - a.area)
+
+      for (const item of sortedNormalItems) {
+        const variants = [
+          { w: item.w, h: item.h, rotated: false },
+          { w: item.h, h: item.w, rotated: true }
+        ].filter(v => v.w <= rightColumnWidth)
+
+        if (variants.length > 0) {
+          const bestVariant = variants.reduce((best, current) =>
+            current.h < best.h ? current : best
+          )
+
+          placed.push({
+            x: rightX,
+            y: rightY,
+            width: bestVariant.w,
+            height: bestVariant.h,
+            originalIndex: item.originalIndex,
+            rotated: bestVariant.rotated
+          })
+          rotations[item.originalIndex] = bestVariant.rotated
+          rightY += bestVariant.h + gap
+        }
+      }
+
+      // 验证所有图片都被放置
+      if (placed.length !== analysis.items.length) {
+        return null
+      }
+
+      const totalHeight = Math.max(leftY, rightY)
+
+      return {
+        totalHeight,
+        layout: placed,
+        rotations
+      }
+    }
+
+    function layeredLayout(analysis, gap) {
+      const placed = []
+      const rotations = new Array(analysis.items.length).fill(false)
+
+      const avgArea = analysis.items.reduce((sum, i) => sum + i.area, 0) / analysis.items.length
+
+      const layers = [
+        analysis.items.filter(item => item.rotationBenefit > 0.2),
+        analysis.items.filter(item => item.area > avgArea && item.rotationBenefit <= 0.2),
+        analysis.items.filter(item => item.rotationBenefit <= 0.2 && item.area <= avgArea)
+      ]
+
+      let currentY = gap
+
+      for (const layer of layers) {
+        if (layer.length === 0) continue
+
+        const layerResult = placeLayer(layer, currentY, gap)
+        placed.push(...layerResult.placed)
+
+        layerResult.placed.forEach(item => {
+          rotations[item.originalIndex] = item.rotated
+        })
+
+        currentY = layerResult.nextY
+      }
+
+      return {
+        totalHeight: currentY,
+        layout: placed,
+        rotations
+      }
+    }
+
+    function placeLayer(items, startY, gap) {
+      const placed = []
+      let currentX = gap
+      let currentY = startY
+      let rowHeight = 0
+
+      for (const item of items) {
+        const variants = [
+          { w: item.w, h: item.h, rotated: false },
+          { w: item.h, h: item.w, rotated: true }
+        ].filter(v => v.w <= CONTAINER_WIDTH - gap)
+
+        if (variants.length === 0) continue
+
+        const bestVariant = item.rotationBenefit > 0 ?
+          variants.find(v => v.rotated) || variants[0] :
+          variants.find(v => !v.rotated) || variants[0]
+
+        if (currentX + bestVariant.w > CONTAINER_WIDTH - gap) {
+          currentY += rowHeight + gap
+          currentX = gap
+          rowHeight = 0
+        }
+
+        placed.push({
+          x: currentX,
+          y: currentY,
+          width: bestVariant.w,
+          height: bestVariant.h,
+          originalIndex: item.originalIndex,
+          rotated: bestVariant.rotated
+        })
+
+        currentX += bestVariant.w + gap
+        rowHeight = Math.max(rowHeight, bestVariant.h)
+      }
+
+      return {
+        placed,
+        nextY: currentY + rowHeight + gap
+      }
+    }
+
+    function hybridLayout(analysis, gap) {
+      const columnResult = columnBasedLayout(analysis, gap)
+      const layerResult = layeredLayout(analysis, gap)
+
+      if (!columnResult) return layerResult
+      if (!layerResult) return columnResult
+
+      return columnResult.totalHeight < layerResult.totalHeight ? columnResult : layerResult
+    }
+
     function greedyPlacement(images, gap) {
-      // 创建所有可能的旋转组合
       const items = images
         .map((img, idx) => [
           { ...img, rotated: false, originalIndex: idx },
@@ -442,7 +721,6 @@
         ])
         .flat()
 
-      // 按面积排序
       items.sort((a, b) => b.w * b.h - a.w * a.h)
 
       const placed = []
@@ -468,164 +746,13 @@
         }
       }
 
-      const totalHeight = Math.max(...placed.map((p) => p.y + p.height)) + gap
+      const totalHeight = placed.length > 0 ? Math.max(...placed.map((p) => p.y + p.height)) + gap : 0
 
       return {
-        totalHeight: totalHeight || 0,
+        totalHeight,
         layout: placed,
         rotations,
       }
-    }
-
-    // 底部左对齐算法
-    function bottomLeftFit(images, gap) {
-      const items = []
-      const rotations = new Array(images.length).fill(false)
-
-      // 为每张图片选择最优方向
-      images.forEach((img, idx) => {
-        const normalRatio = img.w / img.h
-        const rotatedRatio = img.h / img.w
-
-        if (img.w <= CONTAINER_WIDTH - gap && img.h <= CONTAINER_WIDTH - gap) {
-          if (normalRatio > rotatedRatio && img.w <= CONTAINER_WIDTH - gap) {
-            items.push({ w: img.w, h: img.h, originalIndex: idx, rotated: false })
-            rotations[idx] = false
-          } else if (img.h <= CONTAINER_WIDTH - gap) {
-            items.push({ w: img.h, h: img.w, originalIndex: idx, rotated: true })
-            rotations[idx] = true
-          } else {
-            items.push({ w: img.w, h: img.h, originalIndex: idx, rotated: false })
-            rotations[idx] = false
-          }
-        }
-      })
-
-      // 按高度降序排列
-      items.sort((a, b) => b.h - a.h)
-
-      const placed = []
-
-      for (const item of items) {
-        const pos = findBestPosition(placed, item, gap)
-        if (pos) {
-          placed.push({
-            x: pos.x,
-            y: pos.y,
-            width: item.w,
-            height: item.h,
-            originalIndex: item.originalIndex,
-            rotated: item.rotated,
-          })
-        }
-      }
-
-      const totalHeight = Math.max(...placed.map((p) => p.y + p.height)) + gap
-
-      return {
-        totalHeight: totalHeight || 0,
-        layout: placed,
-        rotations,
-      }
-    }
-
-    // 遗传算法优化
-    function geneticOptimization(images, gap) {
-      const populationSize = 20
-      const generations = 30
-
-      // 初始化种群
-      let population = []
-      for (let i = 0; i < populationSize; i++) {
-        const individual = images.map(() => Math.random() > 0.5)
-        population.push(individual)
-      }
-
-      let bestSolution = null
-      let bestFitness = Number.POSITIVE_INFINITY
-
-      for (let gen = 0; gen < generations; gen++) {
-        // 评估适应度
-        const fitness = population.map((individual) => {
-          const result = evaluateLayout(images, individual, gap)
-          if (result.totalHeight < bestFitness) {
-            bestFitness = result.totalHeight
-            bestSolution = { ...result, rotations: [...individual] }
-          }
-          return result.totalHeight
-        })
-
-        // 选择、交叉、变异
-        const newPopulation = []
-        for (let i = 0; i < populationSize; i++) {
-          const parent1 = tournamentSelection(population, fitness)
-          const parent2 = tournamentSelection(population, fitness)
-          let child = crossover(parent1, parent2)
-          child = mutate(child)
-          newPopulation.push(child)
-        }
-
-        population = newPopulation
-      }
-
-      return (
-        bestSolution || {
-          totalHeight: Number.POSITIVE_INFINITY,
-          layout: [],
-          rotations: [],
-        }
-      )
-    }
-
-    function evaluateLayout(images, rotations, gap) {
-      const items = images.map((img, idx) => ({
-        w: rotations[idx] ? img.h : img.w,
-        h: rotations[idx] ? img.w : img.h,
-        originalIndex: idx,
-        rotated: rotations[idx],
-      }))
-
-      const placed = []
-      for (const item of items) {
-        const pos = findBestPosition(placed, item, gap)
-        if (pos) {
-          placed.push({
-            x: pos.x,
-            y: pos.y,
-            width: item.w,
-            height: item.h,
-            originalIndex: item.originalIndex,
-            rotated: item.rotated,
-          })
-        }
-      }
-
-      const totalHeight = Math.max(...placed.map((p) => p.y + p.height)) + gap
-      return { totalHeight: totalHeight || 0, layout: placed }
-    }
-
-    function tournamentSelection(population, fitness) {
-      const tournamentSize = 3
-      let best = Math.floor(Math.random() * population.length)
-
-      for (let i = 1; i < tournamentSize; i++) {
-        const candidate = Math.floor(Math.random() * population.length)
-        if (fitness[candidate] < fitness[best]) {
-          best = candidate
-        }
-      }
-
-      return [...population[best]]
-    }
-
-    function crossover(parent1, parent2) {
-      const crossoverPoint = Math.floor(Math.random() * parent1.length)
-      return parent1.slice(0, crossoverPoint).concat(parent2.slice(crossoverPoint))
-    }
-
-    function mutate(individual) {
-      const mutationRate = 0.1
-      return individual.map((gene) => (Math.random() < mutationRate ? !gene : gene))
     }
 
     // 找到最佳放置位置
@@ -650,8 +777,9 @@
       }
 
       // 过滤掉重叠的位置
-      const validPositions = candidates.filter((pos) => {
-        return !isOverlapping(pos, item, placed, gap)
+      const validPositions = candidates.filter(pos => {
+        return !isOverlapping(pos, item, placed, gap) &&
+          pos.x + item.w <= CONTAINER_WIDTH
       })
 
       if (validPositions.length === 0) return null
