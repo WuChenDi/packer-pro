@@ -930,55 +930,119 @@
       return true
     }
 
-    // 新增 MaxRects 布局策略
+    // MaxRects 布局策略
     function maxRectsLayout(analysis, gap) {
-      const placed = []
-      const rotations = new Array(analysis.items.length).fill(false)
+      const placed = [];
+      const rotations = new Array(analysis.items.length).fill(false);
 
       // 复制物品并排序按面积降序
-      const items = [...analysis.items].sort((a, b) => b.area - a.area)
+      let items = [...analysis.items].sort((a, b) => b.area - a.area);
 
       // 初始化空闲矩形列表
-      let freeRects = [{ x: gap, y: gap, w: CONTAINER_WIDTH - 2 * gap, h: Infinity }]
+      let freeRects = [{ x: gap, y: gap, w: CONTAINER_WIDTH - 2 * gap, h: Infinity }];
+      let totalHeight = gap;
 
-      let totalHeight = gap
+      // 初始策略：强制将两个最大面积图片并排（如果合适）
+      if (items.length >= 2) {
+        const [item1, item2, ...restItems] = items;
+        const variants1 = [
+          { w: item1.w, h: item1.h, rotated: false },
+          { w: item1.h, h: item1.w, rotated: true }
+        ];
+        const variants2 = [
+          { w: item2.w, h: item2.h, rotated: false },
+          { w: item2.h, h: item2.w, rotated: true }
+        ];
 
+        let canFitSideBySide = false;
+        let bestV1 = null, bestV2 = null;
+
+        for (const v1 of variants1) {
+          for (const v2 of variants2) {
+            if (v1.w + v2.w + gap <= CONTAINER_WIDTH - 2 * gap) {
+              canFitSideBySide = true;
+              bestV1 = v1;
+              bestV2 = v2;
+              break;
+            }
+          }
+          if (canFitSideBySide) break;
+        }
+
+        if (canFitSideBySide) {
+          // 放置第一个
+          placed.push({
+            x: gap,
+            y: gap,
+            width: bestV1.w,
+            height: bestV1.h,
+            originalIndex: item1.originalIndex,
+            rotated: bestV1.rotated
+          });
+          rotations[item1.originalIndex] = bestV1.rotated;
+
+          // 放置第二个
+          placed.push({
+            x: gap + bestV1.w + gap,
+            y: gap,
+            width: bestV2.w,
+            height: bestV2.h,
+            originalIndex: item2.originalIndex,
+            rotated: bestV2.rotated
+          });
+          rotations[item2.originalIndex] = bestV2.rotated;
+
+          // 更新总高度
+          totalHeight = gap + Math.max(bestV1.h, bestV2.h) + gap;
+
+          // 更新空闲矩形
+          freeRects = [{
+            x: gap,
+            y: totalHeight,
+            w: CONTAINER_WIDTH - 2 * gap,
+            h: Infinity
+          }];
+          items = restItems;
+        }
+      }
+
+      // 对剩余图片应用 MaxRects
       for (const item of items) {
-        let bestRect = null
-        let bestScore = Infinity
-        let bestRotated = false
-        let bestFreeIndex = -1
+        let bestRect = null;
+        let bestScore = Infinity;
+        let bestRotated = false;
+        let bestFreeIndex = -1;
 
         const variants = [
           { w: item.w, h: item.h, rotated: false },
           { w: item.h, h: item.w, rotated: true }
-        ]
+        ];
 
         for (const variant of variants) {
           for (let i = 0; i < freeRects.length; i++) {
-            const fr = freeRects[i]
+            const fr = freeRects[i];
             if (fr.w >= variant.w && fr.h >= variant.h) {
-              const leftoverHoriz = fr.w - variant.w
-              const leftoverVert = fr.h - variant.h
-              const shortSideFit = Math.min(leftoverHoriz, leftoverVert)
-              const longSideFit = Math.max(leftoverHoriz, leftoverVert)
-              const score = shortSideFit + longSideFit * 0.1 + fr.y * 0.01
+              const leftoverHoriz = fr.w - variant.w;
+              const leftoverVert = fr.h - variant.h;
+              const shortSideFit = Math.min(leftoverHoriz, leftoverVert);
+              const longSideFit = Math.max(leftoverHoriz, leftoverVert);
+              const score = shortSideFit + longSideFit * 0.1 + fr.y * 0.01;
 
               if (score < bestScore) {
-                bestScore = score
-                bestRect = fr
-                bestRotated = variant.rotated
-                bestFreeIndex = i
+                bestScore = score;
+                bestRect = fr;
+                bestRotated = variant.rotated;
+                bestFreeIndex = i;
               }
             }
           }
         }
 
         if (bestRect) {
-          const placeX = bestRect.x
-          const placeY = bestRect.y
-          const placeW = bestRotated ? item.h : item.w
-          const placeH = bestRotated ? item.w : item.h
+          const placeX = bestRect.x;
+          const placeY = bestRect.y;
+          const placeW = bestRotated ? item.h : item.w;
+          const placeH = bestRotated ? item.w : item.h;
 
           placed.push({
             x: placeX,
@@ -987,30 +1051,30 @@
             height: placeH,
             originalIndex: item.originalIndex,
             rotated: bestRotated
-          })
-          rotations[item.originalIndex] = bestRotated
+          });
+          rotations[item.originalIndex] = bestRotated;
 
-          totalHeight = Math.max(totalHeight, placeY + placeH + gap)
+          totalHeight = Math.max(totalHeight, placeY + placeH + gap);
 
-          const newFree1 = { x: placeX + placeW, y: placeY, w: bestRect.w - placeW, h: placeH }
-          const newFree2 = { x: placeX, y: placeY + placeH, w: bestRect.w, h: bestRect.h - placeH }
+          const newFree1 = { x: placeX + placeW, y: placeY, w: bestRect.w - placeW, h: placeH };
+          const newFree2 = { x: placeX, y: placeY + placeH, w: bestRect.w, h: bestRect.h - placeH };
 
-          freeRects.splice(bestFreeIndex, 1)
+          freeRects.splice(bestFreeIndex, 1);
 
-          if (newFree1.w > 0 && newFree1.h > 0) freeRects.push(newFree1)
-          if (newFree2.w > 0 && newFree2.h > 0) freeRects.push(newFree2)
+          if (newFree1.w > 0 && newFree1.h > 0) freeRects.push(newFree1);
+          if (newFree2.w > 0 && newFree2.h > 0) freeRects.push(newFree2);
 
-          mergeFreeRects(freeRects)
+          mergeFreeRects(freeRects);
         }
       }
 
-      if (placed.length !== analysis.items.length) return null
+      if (placed.length !== analysis.items.length) return null;
 
       return {
         totalHeight,
         layout: placed,
         rotations
-      }
+      };
     }
 
     // 合并空闲矩形函数
@@ -1019,13 +1083,13 @@
         for (let j = i + 1; j < freeRects.length; j++) {
           if (isAdjacent(freeRects[i], freeRects[j])) {
             if (freeRects[i].x === freeRects[j].x && freeRects[i].w === freeRects[j].w) {
-              freeRects[i].h += freeRects[j].h
-              freeRects.splice(j, 1)
-              j--
+              freeRects[i].h += freeRects[j].h;
+              freeRects.splice(j, 1);
+              j--;
             } else if (freeRects[i].y === freeRects[j].y && freeRects[i].h === freeRects[j].h) {
-              freeRects[i].w += freeRects[j].w
-              freeRects.splice(j, 1)
-              j--
+              freeRects[i].w += freeRects[j].w;
+              freeRects.splice(j, 1);
+              j--;
             }
           }
         }
@@ -1039,7 +1103,7 @@
         (r2.x + r2.w === r1.x && r2.y === r1.y && r2.h === r1.h) ||
         (r1.y + r1.h === r2.y && r1.x === r2.x && r1.w === r2.w) ||
         (r2.y + r2.h === r1.y && r2.x === r1.x && r2.w === r1.w)
-      )
+      );
     }
 
     function placeLayer(items, startY, gap) {
@@ -1128,7 +1192,7 @@
       }
     }
 
-    // 优化后的贪心算法
+    // 贪心算法
     function optimizedGreedyPlacement(images, gap) {
       const items = images
         .map((img, idx) => [
