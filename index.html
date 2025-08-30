@@ -926,6 +926,7 @@
                 <span>总高度: ${result.totalHeight.toFixed(1)}px</span>
             </div>
             <div class="group-content">
+                <!-- <div class="visualization" id="vis-${group.id}" style="min-height: 400px;height: ${result.totalHeight}px;"> -->
                 <div class="visualization" id="vis-${group.id}">
                     <div class="container-boundary"></div>
                 </div>
@@ -937,10 +938,10 @@
                     <div class="stat-row">
                         <span><strong>旋转图片:</strong></span>
                         <span>${rotatedCount} 张 (${result.rotations
-            .map((r, i) => (r ? i + 1 : ''))
-            .filter((i) => i)
-            .join(', ') || '无'
-          })</span>
+                          .map((r, i) => (r ? i + 1 : ''))
+                          .filter((i) => i)
+                          .join(', ') || '无'
+                        })</span>
                     </div>
                     <div class="stat-row">
                         <span><strong>空间利用率:</strong></span>
